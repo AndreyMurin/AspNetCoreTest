@@ -3,14 +3,22 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using AspNetCoreTest.Data.Abstractions;
 
 namespace AspNetCoreTest.Controllers
 {
     public class HomeController : Controller
     {
+        private IStorage storage;
+
+        public HomeController(IStorage storage)
+        {
+            this.storage = storage;
+        }
+
         public IActionResult Index()
         {
-            return View();
+            return this.View(this.storage.GetRepository<IItemRepository>().All());
         }
 
         public IActionResult About()

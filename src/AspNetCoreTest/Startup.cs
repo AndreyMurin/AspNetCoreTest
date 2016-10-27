@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using AspNetCoreTest.Data.Abstractions;
 
 namespace AspNetCoreTest
 {
@@ -29,6 +30,11 @@ namespace AspNetCoreTest
         {
             // Add framework services.
             services.AddMvc();
+
+            // Uncomment to use mock storage
+            services.AddScoped(typeof(IStorage), typeof(AspNetCoreTest.Data.Mock.Storage));
+            // Uncomment to use SQLite storage
+            //services.AddScoped(typeof(IStorage), typeof(AspNetCoreTest.Data.Sqlite.Storage));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
