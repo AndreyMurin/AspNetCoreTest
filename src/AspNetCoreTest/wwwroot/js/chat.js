@@ -3,7 +3,7 @@ $().ready(function () {
     //var port = window.location.port;
     //port = (port == 80) ? '' : ':' + port;
     var host = window.location.host;
-    webSocket = new WebSocket('ws://' + host);
+    webSocket = new WebSocket('ws://' + host + '/chat');
     webSocket.onopen = function () {
         $("#spanStatus").text("connected");
     };
