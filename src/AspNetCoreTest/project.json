@@ -22,7 +22,8 @@
     "Microsoft.Extensions.Options.ConfigurationExtensions": "1.0.0",
     "Microsoft.VisualStudio.Web.BrowserLink.Loader": "14.0.0",
     "AspNetCoreTest.Data.Mock": "1.0.0-*",
-    "AspNetCoreTest.Data.Sqlite": "1.0.0-*"
+    "AspNetCoreTest.Data.Sqlite": "1.0.0-*",
+    "Microsoft.AspNetCore.WebSockets.Server": "0.1.0"
   },
 
   "tools": {

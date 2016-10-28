@@ -8,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using AspNetCoreTest.Data.Abstractions;
+using AspNetCoreTest.Data.Models;
 
 namespace AspNetCoreTest
 {
@@ -54,6 +55,20 @@ namespace AspNetCoreTest
             }
 
             app.UseStaticFiles();
+
+            app.UseWebSockets();
+            app.Use(async (http, next) =>
+            {
+                if (http.WebSockets.IsWebSocketRequest)
+                {
+                    //Handle WebSocket Requests here.
+                    await Chat.NewClient(http);
+                }
+                else
+                {
+                    await next();
+                }
+            });
 
             app.UseMvc(routes =>
             {
