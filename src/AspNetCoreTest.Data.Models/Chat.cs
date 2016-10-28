@@ -21,9 +21,9 @@ namespace AspNetCoreTest.Data.Models
 
         //private WebSocket Socket { get; set; }
 
-        public static async Task NewClient(HttpContext http)
+        public static async Task NewClient(HttpContext httpContext)
         {
-            var webSocket = await http.WebSockets.AcceptWebSocketAsync();
+            var webSocket = await httpContext.WebSockets.AcceptWebSocketAsync();
 
             //Socket = socket;
             // Добавляем его в список клиентов

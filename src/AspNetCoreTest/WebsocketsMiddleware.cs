@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using AspNetCoreTest.Data.Models;
+using System.Threading;
 
 namespace AspNetCoreTest
 {
@@ -31,6 +32,8 @@ namespace AspNetCoreTest
                         await Chat.NewClient(httpContext);
                         break;
                     default:
+                        var webSocket = await httpContext.WebSockets.AcceptWebSocketAsync();
+                        await webSocket.CloseAsync(System.Net.WebSockets.WebSocketCloseStatus.NormalClosure, "Websocket path not founded!", CancellationToken.None);
                         break;
                         //await next();
                         //throw new Exception("Not founded");
