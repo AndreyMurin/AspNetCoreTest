@@ -12,5 +12,10 @@ namespace AspNetCoreTest.Data.Models
         NNet(int size) {
             Neurons = new List<Neuron>(size);
         }
+
+        public void save()
+        {
+
+        }
     }
 }
