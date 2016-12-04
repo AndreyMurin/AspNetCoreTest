@@ -32,6 +32,9 @@ namespace AspNetCoreTest
             // Add framework services.
             services.AddMvc();
 
+            // Setup options with DI
+            //services.AddOptions();
+
             // Uncomment to use mock storage
             services.AddScoped(typeof(IStorage), typeof(AspNetCoreTest.Data.Mock.Storage));
             // Uncomment to use SQLite storage

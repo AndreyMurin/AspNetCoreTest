@@ -1,0 +1,2 @@
+документация на ASP.NET Core 
+https://docs.microsoft.com/ru-ru/aspnet/core/fundamentals/logging
