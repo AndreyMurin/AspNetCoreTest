@@ -19,13 +19,27 @@
     "Microsoft.Extensions.Logging": "1.0.0",
     "Microsoft.Extensions.Logging.Console": "1.0.0",
     "Microsoft.Extensions.Logging.Debug": "1.0.0",
+    "Microsoft.Extensions.Logging.Filter": "1.0.0",
+    "Microsoft.Extensions.Logging.TraceSource": "1.0.0",
+    "NLog.Extensions.Logging": "1.0.0-*",
+    //"Serilog.Extensions.Logging": { "target": "project" },
+    //"Serilog.Settings.Configuration": "2.1.0-dev-00028",
+    //"Serilog.Sinks.Trace": "2.0.0",
+    //"Serilog.Sinks.Literate": "2.0.0",
+    //"Serilog.Sinks.Seq": "3.1.1",
+    //"Serilog.Extensions.Logging": "1.3.1",
+    //"Serilog.Sinks.Literate": "2.0.0",
+    //"Serilog.Settings.Configuration": "2.2.0",
+    //"Serilog.Extensions.Logging": "1.0.0-rc1-final-10092",
+    //"Serilog.Sinks.RollingFile": "2.0.0-beta-465",
     "Microsoft.Extensions.Options.ConfigurationExtensions": "1.0.0",
     "Microsoft.VisualStudio.Web.BrowserLink.Loader": "14.0.0",
     "AspNetCoreTest.Data.Mock": "1.0.0-*",
     "AspNetCoreTest.Data.Sqlite": "1.0.0-*",
     "Microsoft.AspNetCore.WebSockets.Server": "0.1.0",
     "React.AspNet": "3.0.0",
-    "BundlerMinifier.Core": "2.2.296"
+    "BundlerMinifier.Core": "2.2.296",
+    "NLog.Schema": "4.3.11"
   },
 
   "tools": {
@@ -58,7 +72,8 @@
       "wwwroot",
       "**/*.cshtml",
       "appsettings.json",
-      "web.config"
+      "web.config",
+      "nlog.config"
     ]
   },
 

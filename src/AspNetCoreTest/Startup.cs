@@ -9,6 +9,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using AspNetCoreTest.Data.Abstractions;
 using AspNetCoreTest.Data.Models;
+using NLog.Extensions.Logging;
+using System.IO;
 
 namespace AspNetCoreTest
 {
@@ -46,6 +48,14 @@ namespace AspNetCoreTest
         {
             loggerFactory.AddConsole(Configuration.GetSection("Logging"));
             loggerFactory.AddDebug();
+
+            loggerFactory.AddNLog();
+            //needed for non-NETSTANDARD platforms: configure nlog.config in your project root
+            env.ConfigureNLog("nlog.config");
+
+            //loggerFactory.AddDebug((category, loglevel) => category.Contains("MyController") && loglevel >= LogLevel.Trace);
+            //loggerFactory.AddProvider(new RollingFileSink());
+            //loggerFactory.AddSerilog(dispose: true);
 
             if (env.IsDevelopment())
             {
