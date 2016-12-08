@@ -20,6 +20,11 @@ namespace AspNetCoreTest
         {
             var builder = new ConfigurationBuilder()
                 .SetBasePath(env.ContentRootPath)
+                // setup default config
+                .AddInMemoryCollection(new Dictionary<string, string>
+                {
+                    { "NNet:Option1", "Default option value" }
+                })
                 .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
                 .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
                 .AddEnvironmentVariables();
@@ -44,7 +49,7 @@ namespace AspNetCoreTest
             });/**/
 
             // Configure MySubOptions using a sub-section of the appsettings.json file
-            services.Configure<MyOptions>(Configuration.GetSection("MyOptions"));
+            services.Configure<MyOptions>(Configuration.GetSection("NNet"));
 
             // Add framework services.
             services.AddMvc();
