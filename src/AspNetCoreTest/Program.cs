@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
+using AspNetCoreTest.Data.Models;
 
 namespace AspNetCoreTest
 {
@@ -19,6 +20,10 @@ namespace AspNetCoreTest
                 .Build();
 
             host.Run();
+
+            // создает сервис заново!!!
+            //NNet tmp = (NNet)host.Services.GetService(typeof(NNet));
+            //tmp.save();
         }
     }
 }

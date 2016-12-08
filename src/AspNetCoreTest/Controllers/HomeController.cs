@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using AspNetCoreTest.Data.Abstractions;
+using AspNetCoreTest.Data.Models;
 using Microsoft.Extensions.Logging;
 
 namespace AspNetCoreTest.Controllers
@@ -12,22 +13,22 @@ namespace AspNetCoreTest.Controllers
     {
         private IStorage storage;
         private readonly ILogger<HomeController> _logger;
+        private NNet _net;
 
-        public HomeController(IStorage storage, ILogger<HomeController> logger)
+        public HomeController(IStorage storage, ILogger<HomeController> logger, NNet net)
         {
             this.storage = storage;
             _logger = logger;
+            _net = net;
+            _logger.LogInformation(11, "Home constructor");
         }
-
-        /*private void testCriticalError() {
-            testCriticalError();
-        }*/
 
         public IActionResult Index()
         {
             _logger.LogInformation(11, "Home index loading");
-            _logger.LogCritical(111, "Test Critical Error");
-            //testCriticalError();
+            //_logger.LogCritical(111, "Test Critical Error");
+            _net.init();
+            
             return this.View(this.storage.GetRepository<IItemRepository>().All());
         }
 

@@ -1,2 +1,9 @@
 документация на ASP.NET Core 
 https://docs.microsoft.com/ru-ru/aspnet/core/fundamentals/logging
+
+документация на NLog
+http://nlog-project.org/
+https://github.com/NLog/NLog/wiki/Tutorial
+
+запуск на линуксе
+https://docs.microsoft.com/en-us/aspnet/core/publishing/apache-proxy

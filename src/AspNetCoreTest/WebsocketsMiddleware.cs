@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using AspNetCoreTest.Data.Models;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 
 namespace AspNetCoreTest
 {
@@ -13,18 +14,21 @@ namespace AspNetCoreTest
     public class WebsocketsMiddleware
     {
         private readonly RequestDelegate _next;
+        private readonly ILogger<WebsocketsMiddleware> _logger;
 
-        public WebsocketsMiddleware(RequestDelegate next)
+        public WebsocketsMiddleware(RequestDelegate next, ILogger<WebsocketsMiddleware> logger)
         {
             _next = next;
+            _logger = logger;
+            _logger.LogInformation(1112, "WebsocketsMiddleware constructor");
         }
 
         public async Task Invoke(HttpContext httpContext)
         {
             if (httpContext.WebSockets.IsWebSocketRequest)
             {
-
                 var path = httpContext.Request.Path;
+                _logger.LogInformation(1112, "WebsocketsMiddleware Invoke {path}", path);
                 //Handle WebSocket Requests here.
                 switch (path)
                 {
@@ -32,6 +36,7 @@ namespace AspNetCoreTest
                         await Chat.NewClient(httpContext);
                         break;
                     default:
+                        _logger.LogError(1113, "Websocket path not founded! path = {path}", path);
                         var webSocket = await httpContext.WebSockets.AcceptWebSocketAsync();
                         await webSocket.CloseAsync(System.Net.WebSockets.WebSocketCloseStatus.NormalClosure, "Websocket path not founded!", CancellationToken.None);
                         break;

@@ -31,14 +31,30 @@ namespace AspNetCoreTest
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            // Setup options with DI
+            services.AddOptions();
+
+            // Configure MyOptions using config by installing Microsoft.Extensions.Options.ConfigurationExtensions
+            //services.Configure<MyOptions>(Configuration);
+            
+            // Configure MyOptions using code
+            /*services.Configure<MyOptions>(myOptions =>
+            {
+                myOptions.Option1 = "value1_from_action";
+            });/**/
+
+            // Configure MySubOptions using a sub-section of the appsettings.json file
+            services.Configure<MyOptions>(Configuration.GetSection("MyOptions"));
+
             // Add framework services.
             services.AddMvc();
 
-            // Setup options with DI
-            //services.AddOptions();
+            services.AddSingleton<NNet, NNet>();
+            //services.AddSingleton<NNet>(new NNet());
 
             // Uncomment to use mock storage
-            services.AddScoped(typeof(IStorage), typeof(AspNetCoreTest.Data.Mock.Storage));
+            //services.AddScoped(typeof(IStorage), typeof(AspNetCoreTest.Data.Mock.Storage));
+            services.AddScoped<IStorage, AspNetCoreTest.Data.Mock.Storage>();
             // Uncomment to use SQLite storage
             //services.AddScoped(typeof(IStorage), typeof(AspNetCoreTest.Data.Sqlite.Storage));
         }
@@ -52,10 +68,6 @@ namespace AspNetCoreTest
             loggerFactory.AddNLog();
             //needed for non-NETSTANDARD platforms: configure nlog.config in your project root
             env.ConfigureNLog("nlog.config");
-
-            //loggerFactory.AddDebug((category, loglevel) => category.Contains("MyController") && loglevel >= LogLevel.Trace);
-            //loggerFactory.AddProvider(new RollingFileSink());
-            //loggerFactory.AddSerilog(dispose: true);
 
             if (env.IsDevelopment())
             {
@@ -96,7 +108,7 @@ namespace AspNetCoreTest
                     await next();
                 }
             });*/
-
+            
             app.UseMvc(routes =>
             {
                 routes.MapRoute(
