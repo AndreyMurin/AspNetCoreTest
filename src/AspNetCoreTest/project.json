@@ -39,7 +39,8 @@
     "Microsoft.AspNetCore.WebSockets.Server": "0.1.0",
     "React.AspNet": "3.0.0",
     "BundlerMinifier.Core": "2.2.296",
-    "NLog.Schema": "4.3.11"
+    "NLog.Schema": "4.3.11",
+    "Microsoft.Extensions.FileProviders.Embedded": "1.0.0"
   },
 
   "tools": {

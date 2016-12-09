@@ -8,7 +8,8 @@
     "Microsoft.Extensions.Logging.Abstractions": "1.0.0",
     "Microsoft.Extensions.Options": "1.0.0",
     "NETStandard.Library": "1.6.0",
-    "System.Net.WebSockets": "4.0.0"
+    "System.Net.WebSockets": "4.0.0",
+    "System.Security.Cryptography.Algorithms": "4.2.0"
   },
 
   "frameworks": {

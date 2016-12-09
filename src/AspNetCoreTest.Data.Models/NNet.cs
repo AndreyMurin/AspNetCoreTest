@@ -7,42 +7,47 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.FileProviders;
+using System.Security.Cryptography;
 
 namespace AspNetCoreTest.Data.Models
 {
-    public class MyOptions
+    public class NNetConfig
     {
-        public string Option1 { get; set; }
-        public int Option2 { get; set; }
+        public string FileName { get; set; }
+        public int Size { get; set; }
     }
 
     public class NNet
     {
         private readonly ILogger<NNet> _logger;
-        private readonly IOptions<MyOptions> _optionsAccessor;
+        private readonly IOptions<NNetConfig> _optionsAccessor;
+        private readonly IFileProvider _provider;
 
-        private List<Neuron> Neurons;
-        private string FileName;
+        private List<Neuron> _neurons;
+        private string _filename;
+        private int _size;
 
-        /*~NNet()
+        public NNet (ILogger<NNet> logger, IOptions<NNetConfig> optionsAccessor, IApplicationLifetime appLifetime, IFileProvider provider)
         {
-            save();
-            _logger.LogInformation(1111, "NNet destructor");
-        }*/
-
-        public NNet (ILogger<NNet> logger, IOptions<MyOptions> optionsAccessor, IApplicationLifetime appLifetime)
-        {
-            //var config = Microsoft.Extensions.Configuration.GetSection("NNet");
-            /*if(logger == null)
-            {
-                logger = LogManager.GetLogger(GetType().FullName);
-            }*/
             _logger = logger;
             _optionsAccessor = optionsAccessor;
-            _logger.LogInformation(1111, "NNet constructor {Option1} {Option2}", _optionsAccessor.Value.Option1, _optionsAccessor.Value.Option2);
+            _logger.LogInformation(1111, "NNet constructor {FileName} {Size}", _optionsAccessor.Value.FileName, _optionsAccessor.Value.Size);
+            _filename = _optionsAccessor.Value.FileName;
+            _size = _optionsAccessor.Value.Size;
+            _provider = provider;
 
             // Ensure any buffered events are sent at shutdown
             appLifetime.ApplicationStopped.Register(this.save);
+
+            if (!string.IsNullOrWhiteSpace(_filename) && _provider.GetFileInfo(_filename).Exists)
+            {
+                load();
+            }
+            else
+            {
+                init();
+            }
         }
 
         /*NNet(ILogger<NNet> logger, int size, string filename) {
@@ -62,7 +67,15 @@ namespace AspNetCoreTest.Data.Models
 
         public void init()
         {
-            _logger.LogInformation(1111, "NNet init {Option1} {Option2}", _optionsAccessor.Value.Option1, _optionsAccessor.Value.Option2);
+            _logger.LogInformation(1111, "NNet init");
+            _neurons = new List<Neuron>();
+            //RandomNumberGenerator generator = RandomNumberGenerator.Create();
+            var rand = new Random();
+            for (var i = 0; i < _size; ++i)
+            {
+                _neurons.Add(new Neuron(rand));
+            }
+
         }
 
         public void save()
@@ -70,9 +83,10 @@ namespace AspNetCoreTest.Data.Models
             _logger.LogInformation(1111, "NNet save");
         }
 
-        public void load(string filename)
+        public void load()
         {
-
+            _logger.LogInformation(1111, "NNet load");
+            
         }
     }
 }

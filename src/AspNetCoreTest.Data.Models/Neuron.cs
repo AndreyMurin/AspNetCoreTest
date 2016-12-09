@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 
 namespace AspNetCoreTest.Data.Models
@@ -16,9 +17,14 @@ namespace AspNetCoreTest.Data.Models
 
         public List<NInp> Input = new List<NInp>();
 
-        public long state;
+        public int state;
 
-        void init(List<Neuron> inp)
+        public Neuron(Random rand)
+        {
+            state = rand.Next(0, 100);
+        }
+
+        public void init(List<Neuron> inp)
         {
 
         }
