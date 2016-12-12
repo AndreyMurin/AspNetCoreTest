@@ -6,9 +6,8 @@ using System.IO;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.FileProviders;
-using System.Security.Cryptography;
+using Newtonsoft.Json;
 
 namespace AspNetCoreTest.Data.Models
 {
@@ -18,62 +17,69 @@ namespace AspNetCoreTest.Data.Models
         public int Size { get; set; }
     }
 
-    public class NNet
+    public class NNet : IDisposable
     {
         private readonly ILogger<NNet> _logger;
         private readonly IOptions<NNetConfig> _optionsAccessor;
         private readonly IFileProvider _provider;
+        private readonly IRnd _rand;
 
-        private List<Neuron> _neurons;
         private string _filename;
-        private int _size;
 
-        public NNet (ILogger<NNet> logger, IOptions<NNetConfig> optionsAccessor, IApplicationLifetime appLifetime, IFileProvider provider)
+        public List<Neuron> Neurons { get; set; }
+        public int Size { get; set; }
+
+        // даже не знаю как удобнее через статик или каждому нейрону сделать ссылку на сеть
+        public static bool isStarted = false;
+
+        public NNet (ILogger<NNet> logger, IOptions<NNetConfig> optionsAccessor, IFileProvider provider, IRnd rand)
         {
             _logger = logger;
             _optionsAccessor = optionsAccessor;
-            _logger.LogInformation(1111, "NNet constructor {FileName} {Size}", _optionsAccessor.Value.FileName, _optionsAccessor.Value.Size);
             _filename = _optionsAccessor.Value.FileName;
-            _size = _optionsAccessor.Value.Size;
+            Size = _optionsAccessor.Value.Size;
             _provider = provider;
+            _rand = rand;
 
-            // Ensure any buffered events are sent at shutdown
-            appLifetime.ApplicationStopped.Register(this.save);
+            _logger.LogInformation(1111, "NNet constructor {FileName} {Size}", _filename, Size);
 
-            if (!string.IsNullOrWhiteSpace(_filename) && _provider.GetFileInfo(_filename).Exists)
+            if (string.IsNullOrWhiteSpace(_filename)) _filename = "test.murin";
+
+            stop();
+
+            if (_provider.GetFileInfo(_filename).Exists)
             {
-                load();
+                load(); 
             }
             else
             {
                 init();
+                save();
             }
+
+            start();
         }
 
-        /*NNet(ILogger<NNet> logger, int size, string filename) {
-            //System.Reflection.Assembly.GetExecutingAssembly().Location
-            if (string.IsNullOrWhiteSpace(filename)) filename = Path.GetTempFileName();
-            FileName = filename;
-            Neurons = new List<Neuron>(size);
-            init();
-        }
-
-        NNet(ILogger<NNet> logger, string filename)
+        public void start()
         {
-            FileName = filename;
-            Neurons = new List<Neuron>();
-            load(filename);
-        }*/
+            isStarted = true;
+        }
+
+        public void stop()
+        {
+            isStarted = false;
+        }
 
         public void init()
         {
             _logger.LogInformation(1111, "NNet init");
-            _neurons = new List<Neuron>();
+            Neurons = new List<Neuron>();
             //RandomNumberGenerator generator = RandomNumberGenerator.Create();
-            var rand = new Random();
-            for (var i = 0; i < _size; ++i)
+            for (var i = 0; i < Size; ++i)
             {
-                _neurons.Add(new Neuron(rand));
+                var n = new Neuron(_rand);
+                Neurons.Add(n);
+                n.tick();
             }
 
         }
@@ -81,12 +87,62 @@ namespace AspNetCoreTest.Data.Models
         public void save()
         {
             _logger.LogInformation(1111, "NNet save");
+            var File = System.IO.File.Create(_filename);
+            using (var Writer = new System.IO.StreamWriter(File))
+            {
+                Writer.WriteLine(JsonConvert.SerializeObject(this, Formatting.Indented));
+            }
+
         }
 
         public void load()
         {
             _logger.LogInformation(1111, "NNet load");
-            
+            // херовая идея => слишком много данных копируется. по идее надо как то десериализовать сразу в текущий объект. пока для тестов оставлю так
+            var tmp = JsonConvert.DeserializeObject<NNet>(File.ReadAllText(_filename));
+            this.Neurons = tmp.Neurons;
+            this.Size = tmp.Size;
+
+            foreach (var n in Neurons)
+            {
+                n.tick();
+            }
         }
+
+        #region IDisposable Support
+        private bool disposedValue = false; // Для определения избыточных вызовов
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    // TODO: освободить управляемое состояние (управляемые объекты).
+                    save();
+                }
+
+                // TODO: освободить неуправляемые ресурсы (неуправляемые объекты) и переопределить ниже метод завершения.
+                // TODO: задать большим полям значение NULL.
+
+                disposedValue = true;
+            }
+        }
+
+        // TODO: переопределить метод завершения, только если Dispose(bool disposing) выше включает код для освобождения неуправляемых ресурсов.
+        // ~NNet() {
+        //   // Не изменяйте этот код. Разместите код очистки выше, в методе Dispose(bool disposing).
+        //   Dispose(false);
+        // }
+
+        // Этот код добавлен для правильной реализации шаблона высвобождаемого класса.
+        void IDisposable.Dispose()
+        {
+            // Не изменяйте этот код. Разместите код очистки выше, в методе Dispose(bool disposing).
+            Dispose(true);
+            // TODO: раскомментировать следующую строку, если метод завершения переопределен выше.
+            // GC.SuppressFinalize(this);
+        }
+        #endregion
     }
 }

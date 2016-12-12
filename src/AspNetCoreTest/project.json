@@ -40,7 +40,8 @@
     "React.AspNet": "3.0.0",
     "BundlerMinifier.Core": "2.2.296",
     "NLog.Schema": "4.3.11",
-    "Microsoft.Extensions.FileProviders.Embedded": "1.0.0"
+    "Microsoft.Extensions.FileProviders.Embedded": "1.0.0",
+    "Newtonsoft.Json": "9.0.1"
   },
 
   "tools": {

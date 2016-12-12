@@ -45,15 +45,6 @@ namespace AspNetCoreTest
             // Setup options with DI
             services.AddOptions();
 
-            // Configure NNetConfig using config by installing Microsoft.Extensions.Options.ConfigurationExtensions
-            //services.Configure<NNetConfig>(Configuration);
-            
-            // Configure NNetConfig using code
-            /*services.Configure<NNetConfig>(myOptions =>
-            {
-                myOptions.FileName = "value1_from_action";
-            });/**/
-
             // Configure MySubOptions using a sub-section of the appsettings.json file
             services.Configure<NNetConfig>(Configuration.GetSection("NNet"));
 
@@ -77,6 +68,7 @@ namespace AspNetCoreTest
             //services.AddSingleton<IFileProvider>(compositeProvider);
             // -------------------------------------
 
+            services.AddSingleton<IRnd, Rnd>();
 
             services.AddSingleton<NNet, NNet>();
         }

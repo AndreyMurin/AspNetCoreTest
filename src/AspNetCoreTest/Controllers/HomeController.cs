@@ -27,7 +27,7 @@ namespace AspNetCoreTest.Controllers
         {
             _logger.LogInformation(11, "Home index loading");
             //_logger.LogCritical(111, "Test Critical Error");
-            _net.init();
+            //_net.init();
             
             return this.View(this.storage.GetRepository<IItemRepository>().All());
         }
