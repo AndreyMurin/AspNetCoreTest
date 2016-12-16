@@ -19,6 +19,7 @@ namespace AspNetCoreTest.Data.Models
 
         public List<NInp> input { get; set; }
 
+        public bool isActive { get; set; }
         public int state { get; set; }
 
         public Neuron(IRnd rand)

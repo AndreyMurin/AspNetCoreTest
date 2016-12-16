@@ -27,7 +27,7 @@ namespace AspNetCoreTest
                 // setup default config
                 .AddInMemoryCollection(new Dictionary<string, string>
                 {
-                    { "NNet:FileName", "test.murin" }, { "NNet:Size", "100" }
+                    { "NNet:FileName", "test.murin" }, { "NNet:LenX", "10" }, { "NNet:LenY", "10" }, { "NNet:LenZ", "2" }
                 })
                 .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
                 .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
