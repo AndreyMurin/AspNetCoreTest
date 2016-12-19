@@ -160,7 +160,6 @@ namespace AspNetCoreTest.Data.Models
                     {
                         foreach (var o in n.Output)
                         {
-                            //var tmp = ;
                             var coords = new NCoords(o.Neuron, LenX, LenY, LenZ);
                             try
                             {
