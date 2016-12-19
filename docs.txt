@@ -1,6 +1,15 @@
 документация на ASP.NET Core 
 https://docs.microsoft.com/ru-ru/aspnet/core/fundamentals/logging
 
+документация по .NET Core
+https://docs.microsoft.com/ru-ru/dotnet/articles/core/tutorials/
+
+модульное тестирвоание
+https://docs.microsoft.com/ru-ru/dotnet/articles/core/testing/
+
+Подробный обзор асинхронного программирования
+https://docs.microsoft.com/ru-ru/dotnet/articles/standard/async-in-depth
+
 документация на NLog
 http://nlog-project.org/
 https://github.com/NLog/NLog/wiki/Tutorial

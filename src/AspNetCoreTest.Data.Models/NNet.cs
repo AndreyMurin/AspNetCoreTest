@@ -12,59 +12,13 @@ using Newtonsoft.Json;
 
 namespace AspNetCoreTest.Data.Models
 {
-    // класс для загрузки с конфиг файла
-    public class NNetConfig
-    {
-        // имя файла для сохранения сети
-        public string FileName { get; set; }
-        // сеть трехмерная
-        // длина по оси X
-        public int LenX { get; set; }
-        // длина по оси Y
-        public int LenY { get; set; }
-        // длина по оси Z (число слоев)
-        public int LenZ { get; set; }
-    }
-
-    public class Coords
-    {
-        // все координаты начинаются с нуля (для оптимизации не будем юзать проперти)
-        public int X;// { get; set; }
-        public int Y;// { get; set; }
-        public int Z;// { get; set; }
-
-        // lenZ не обязательный параметр (по сути он нужен тока для проверки границ)
-        // сделаем перегрузку с проверкой и без проверки
-        // захерачить бы для оптимизации в инлайн, так как вызов данной функции довольно часто будет надо оптимизировать!
-        // хотя таким способом мы будем тока инициализировать связи и задавать входные параметры а внутри везде юзаем одиночную координату!
-        public long ToSingle(int lenX, int lenY)
-        {
-            return (X + lenX * Y + lenX * lenY * Z);
-        }
-        // эту прегрузку наверное не будем вызывать!!! так как тут проверки которые занимают время
-        public long ToSingle(int lenX, int lenY, int lenZ)
-        {
-            // делать ли проверку на выход за пределы?
-            if (X >= lenX) throw new Exception("Выход за пределы массива");
-            if (Y >= lenY) throw new Exception("Выход за пределы массива");
-            if (Z >= lenZ) throw new Exception("Выход за пределы массива");
-            /**/
-            return ToSingle(lenX, lenY);
-        }
-        /*
-         lenX=3, lenY=4, lenZ=2
-         (0,0,0) => 0
-         (1,0,0) => 1
-         (2,0,0) => 2
-         (0,1,0) => 3
-         (1,1,0) => 4
-         (2,1,0) => 5
-         */
-    }
-
+    
     public class NNet : IDisposable
     {
-        private readonly ILogger<NNet> _logger;
+        // используем статик для разработки (чтобы получить доступ из нейронов)
+        private static ILogger<NNet> _logger;
+        //private readonly ILogger<NNet> _logger;
+
         private readonly IOptions<NNetConfig> _optionsAccessor;
         private readonly IFileProvider _provider;
         private readonly IRnd _rand;
@@ -83,7 +37,7 @@ namespace AspNetCoreTest.Data.Models
         private long _size { get { return LenX * LenY * LenZ; }  }
 
         // даже не знаю как удобнее через статик или каждому нейрону сделать ссылку на сеть
-        public static int isStarted = 0;
+        public static long isStarted = 0;
         // число одновременно запущеннных задач (активных нейронов, чтоб оперативно тормозить)
         public static int Threads = 0;
 
@@ -133,8 +87,20 @@ namespace AspNetCoreTest.Data.Models
             //isStarted = 0;
         }
 
-        public void SetInputs(Dictionary<Coords, int> inputs)
+        public void SetInputs(Dictionary<NCoords, int> inputs)
         {
+
+        }
+
+        // установка связей все ко всем
+        public void SetRelations()
+        {
+            for (var i = 0; i < _size; i++)
+            {
+                var output = new List<NOutput>();
+
+                Neurons[i].SetOutput(output);
+            }
 
         }
 
@@ -142,8 +108,8 @@ namespace AspNetCoreTest.Data.Models
             foreach (var n in Neurons.Where(i => i.isActive))
             {
                 Task.Factory.StartNew(()=> {
-                    n.tick();
-                });
+                    n.Tick();
+                });/**/
             }
         }
 
@@ -176,6 +142,7 @@ namespace AspNetCoreTest.Data.Models
             _logger.LogInformation(1111, "NNet load");
             // херовая идея => слишком много данных копируется. по идее надо как то десериализовать сразу в текущий объект. пока для тестов оставлю так
             var tmp = JsonConvert.DeserializeObject<NNet>(File.ReadAllText(_filename));
+            // если Neurons static то присваивания не надо
             this.Neurons = tmp.Neurons;
             this.LenX = tmp.LenX;
             this.LenY = tmp.LenY;
@@ -186,6 +153,28 @@ namespace AspNetCoreTest.Data.Models
                 n.tick();
             }*/
         }
+
+        /*public async Task<string> GetFirstCharactersCountAsync(string url, int count)
+        {
+            // Execution is synchronous here
+            var client = new System.Net.Http.HttpClient();
+
+            // Execution of GetFirstCharactersCountAsync() is yielded to the caller here
+            // GetStringAsync returns a Task<string>, which is *awaited*
+            var page = await client.GetStringAsync("http://www.dotnetfoundation.org");
+
+            // Execution resumes when the client.GetStringAsync task completes,
+            // becoming synchronous again.
+
+            if (count > page.Length)
+            {
+                return page;
+            }
+            else
+            {
+                return page.Substring(0, count);
+            }
+        }/**/
 
         #region IDisposable Support
         private bool disposedValue = false; // Для определения избыточных вызовов
