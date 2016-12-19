@@ -26,7 +26,7 @@ namespace AspNetCoreTest.Data.Models
             i = i - (Z * lenX * lenY);
             Y = (int)(i / lenX);
 
-            X = (int)(i - (Y * lenY));
+            X = (int)(i - (Y * lenX));
         }
 
         // lenZ не обязательный параметр (по сути он нужен тока для проверки границ)
