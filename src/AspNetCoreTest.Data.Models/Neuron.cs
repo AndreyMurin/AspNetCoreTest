@@ -9,18 +9,29 @@ namespace AspNetCoreTest.Data.Models
 {
     public class NOutput
     {
-        public decimal Weight;// { get; set; }
+        // вес связи в диапазаоне думаю от -1 до 1 (возможно от -2 до 2 для повышения эффективности связи)
+        public double Weight;// { get; set; }
+
+        // индекс нейрона для сохранения-загрузки
         public long Neuron;// { get; set; }
+
+        // ссылка на нейрон
         private Neuron _neuron;
+
+        public void SetNeuron(Neuron neuron) { _neuron = neuron; } // никаких ref в параметрах не надо!
     }
 
     public class Neuron
     {
+        // запущены таймеры и потоки
         private bool _isStarted = false;
 
         public List<NOutput> Output { get; set; }
 
+        // нейрон в активном состоянии идут разряды
         public bool isActive { get; set; }
+
+        // заряд нейрона при превышении определеного порга происходят разряды (spike)
         public int State { get; set; }
 
         public Neuron(IRnd rand)

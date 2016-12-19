@@ -15,7 +15,17 @@ namespace AspNetCoreTest.Data.Models
     
     public class NNet : IDisposable
     {
-        // используем статик для разработки (чтобы получить доступ из нейронов)
+        // константы инициализации
+        // макс мин вес связи
+        public const double minWeight = -1;
+        public const double maxWeight = 1;
+        
+        // максимальная глубина проникновения связей по координатам (в каждую сторону!) 
+        public const int maxDeepRelationsZ = 2;
+        public const int maxDeepRelationsY = 500;
+        public const int maxDeepRelationsX = 500;
+
+        // используем статик для разработки (чтобы получить доступ из нейронов) 
         private static ILogger<NNet> _logger;
         //private readonly ILogger<NNet> _logger;
 
@@ -25,16 +35,27 @@ namespace AspNetCoreTest.Data.Models
 
         private string _filename;
 
-        public List<Neuron> Neurons { get; set; }
+        // 2^32 = 4 294 967 296. а нам надо ~ 100 000 000 000 нейронов
+        // значит нельзя делать одним списком (индекс инт)
+        //public List<Neuron> Neurons { get; set; }
+
+        // а вот таким образом теоретически мы можем реализовать до куя нейронов. в дальнейшем пределать на массивы если накладные расходы на List будут велики
+        // внутри Output используем long это 2^64 = 18 446 744 073 709 551 616 я думаю этого хватит на нейроны всего человечества в целом
+        // учесть в эволюционном алгоритме при изменении по осям икс игрек и зет => пересчитать Neuron.Neuron
+        // помни адресацию по координатам Neurons[z][y][x]!
+        public List<List<List<Neuron>>> Neurons { get; set; }
+
         // сеть трехмерная (договоримся что первый слой входы, тогда MaxX и MaxY определяют число входов)
+        // последний слой - двигательные нейроны! тогда слоев должно быть минимум 3
         // длина по оси X
         public int LenX { get; set; }
         // длина по оси Y
         public int LenY { get; set; }
         // длина по оси Z (число слоев)
         public int LenZ { get; set; }
+
         // LenX * LenY * LenZ
-        private long _size { get { return LenX * LenY * LenZ; }  }
+        //private long _size { get { return LenX * LenY * LenZ; }  }
 
         // даже не знаю как удобнее через статик или каждому нейрону сделать ссылку на сеть
         public static long isStarted = 0;
@@ -52,6 +73,8 @@ namespace AspNetCoreTest.Data.Models
             _provider = provider;
             _rand = rand;
 
+            if (LenZ < 3) LenZ = 3; // 3 слоя минимум 1 входной последний выход
+
             _logger.LogInformation(1111, "NNet constructor {FileName} {MaxX} {MaxY} {MaxZ}", _filename, LenX, LenY, LenZ);
 
             if (string.IsNullOrWhiteSpace(_filename)) _filename = "test.murin";
@@ -64,9 +87,12 @@ namespace AspNetCoreTest.Data.Models
             }
             else
             {
+
                 randomize();
+                _setRelations();
                 save();
             }
+            _setOutputNeurons();
             startThreads();
             Start();
         }
@@ -87,26 +113,123 @@ namespace AspNetCoreTest.Data.Models
             //isStarted = 0;
         }
 
+        // активация входов (за раз сразу несколько)
         public void SetInputs(Dictionary<NCoords, int> inputs)
         {
 
         }
 
-        // установка связей все ко всем
-        public void SetRelations()
+        // установка безусловного рефлекса, будем проводить тупо по прямой от начальной точки до конечной (ставим макс вес если связи нет то создадим ее)
+        // надо подумать хорошо ли так. с одной стороны максимальная скрость реакции с другой очень сложно подавить такой рефлекс условным
+
+        // договоримся безусловный рефлекс проводить по всем слоям от начальной точки до конечной. при таком варианте получаем возможность подавить на любом уровне
+        // и при желании можно увеличить скорость реакции прокачав более короткую связь (через несколько слоев) обучением
+        // в теории, таким способом мы можем задать очень медленный безусловный рефлекс задав более длинный путь (попетляв по слоям туда сюда)
+        public void SetUnconditionedReflex(List<NCoords> path)
         {
-            for (var i = 0; i < _size; i++)
+            for (var i = 1; i < path.Count; i++)
             {
-                var output = new List<NOutput>();
-
-                Neurons[i].SetOutput(output);
+                var beginN = Neurons[path[i - 1].Z][path[i - 1].Y][path[i - 1].X];
+                var destN = path[i].ToSingle(LenX, LenY);
+                var founded = false;
+                foreach (var output in beginN.Output)
+                {
+                    if (output.Neuron == destN) // связь нашли усилим ее до макс и свалим
+                    {
+                        output.Weight = maxWeight;
+                        founded = true;
+                        break;
+                    }
+                }
+                if (!founded)
+                {
+                    var o = new NOutput() { Neuron = destN, Weight = maxWeight };
+                    o.SetNeuron(Neurons[path[i].Z][path[i].Y][path[i].X]);
+                    beginN.Output.Add(o);
+                }
             }
-
         }
 
-        private void startThreads() {
-            foreach (var n in Neurons.Where(i => i.isActive))
+        // устанавливаем у каждого нейрона в Neuron.Output _neuron соответсвующий  Neuron.Neuron (после сохранения, инициализации)
+        // довольно медленная операция, но она происходит тока после загрузки и создания
+        private void _setOutputNeurons()
+        {
+            foreach (var z in Neurons)
+                foreach (var y in z)
+                    foreach (var n in y)
+                    {
+                        foreach (var o in n.Output)
+                        {
+                            //var tmp = ;
+                            var coords = new NCoords(o.Neuron, LenX, LenY, LenZ);
+                            try
+                            {
+                                o.SetNeuron(Neurons[coords.Z][coords.Y][coords.X]);
+                            }
+                            catch (Exception e)
+                            {
+                                _logger.LogInformation(1111, "NNet::_setOutputNeurons() {exc} \n{Neuron} = ({X},{Y},{Z})", e.Message, o.Neuron, coords.X, coords.Y, coords.Z);
+                            }
+                        }
+                    }
+        }
+
+        // установка связей (максимум макс инт!!!! так что ограничимся 2-3 слоя) глубина задана константами maxDeepRelationsX(YZ).
+        // кроме первого слоя (там входы) и на первый слой тоже не делаем связи
+        // последний слой выходной так что там нет выходов строго (если что руками позже увеличим число выходов)
+        private void _setRelations()
+        {
+            for (var z = 0; z < LenZ-1; z++)
             {
+                for (var y = 0; y < LenY; y++)
+                {
+                    for (var x = 0; x < LenX; x++)
+                    {
+                        Neurons[z][y][x].SetOutput(_createOutputForNeuron(x, y, z));
+                    }
+                }
+            }
+        }
+
+        private List<NOutput> _createOutputForNeuron(int x, int y, int z)
+        {
+            var output = new List<NOutput>();
+            // по оси Z распределение норм тут не надо замыкать последний слой на первый
+            var minZ = z - maxDeepRelationsZ; if (minZ < 1) minZ = 1; var maxZ = z + maxDeepRelationsZ; if (maxZ > LenZ - 1) maxZ = LenZ - 1;
+            
+            // а вот по икс и игрек хотелось бы замкнуть первые нейроны на последние
+            //todo сделать замыкание начала с концом ...
+            var minY = y - maxDeepRelationsY; if (minY < 0) minY = 0; var maxY = y + maxDeepRelationsY; if (maxY > LenY - 1) maxY = LenY - 1;
+            var minX = x - maxDeepRelationsX; if (minX < 0) minX = 0; var maxX = x + maxDeepRelationsX; if (maxX > LenX - 1) maxX = LenX - 1;
+
+            for (var zz = minZ; zz <= maxZ; zz++) // первый слой входы (входы исключительно на другие слои)
+            {
+                for (var yy = minY; yy <= maxY; yy++)
+                {
+                    for (var xx = minX; xx <= maxX; xx++)
+                    {
+                        // связь на себя не допускаем, тока косвенная - через другие нейроны
+                        if (x == xx && yy == y && z == zz) continue;
+
+                        var coords = new NCoords(xx, yy, zz);
+                        var o = new NOutput() { Neuron = coords.ToSingle(LenX, LenY), Weight = _rand.NextDouble(minWeight, maxWeight) };
+                        o.SetNeuron(Neurons[zz][yy][xx]);
+
+                        output.Add(o);
+                    }
+                }
+            }
+
+            return output;
+        }
+
+
+        private void startThreads() {
+            //foreach (var n in Neurons.Where(i => i.isActive))
+            foreach (var z in Neurons)
+                foreach (var y in z)
+                    foreach (var n in y.Where(i => i.isActive))
+                    {
                 Task.Factory.StartNew(()=> {
                     n.Tick();
                 });/**/
@@ -116,13 +239,19 @@ namespace AspNetCoreTest.Data.Models
         private void randomize()
         {
             _logger.LogInformation(1111, "NNet randomize");
-            Neurons = new List<Neuron>();
+            Neurons = new List<List<List<Neuron>>>();
             //RandomNumberGenerator generator = RandomNumberGenerator.Create();
-            for (var i = 0; i < _size; i++)
+            for (var z = 0; z < LenZ; z++)
             {
-                var n = new Neuron(_rand);
-                Neurons.Add(n);
-                //n.tick();
+                Neurons.Add(new List<List<Neuron>>());
+                for (var y = 0; y < LenY; y++)
+                {
+                    Neurons[z].Add(new List<Neuron>());
+                    for (var x = 0; x < LenX; x++)
+                    {
+                        Neurons[z][y].Add(new Neuron(_rand));
+                    }
+                }
             }
         }
 

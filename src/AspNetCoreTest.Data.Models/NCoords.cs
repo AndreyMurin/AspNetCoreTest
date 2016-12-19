@@ -12,6 +12,11 @@ namespace AspNetCoreTest.Data.Models
         public int Y;// { get; set; }
         public int Z;// { get; set; }
 
+        public NCoords(int x, int y, int z)
+        {
+            X = x;Y = y;Z = z;
+        }
+
         // создает кординаты по индексу нейрона
         public NCoords(long i, int lenX, int lenY, int lenZ)
         {
