@@ -21,6 +21,10 @@ Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "AspNetCoreTest.Data.Mock", 
 EndProject
 Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "AspNetCoreTest.Data.Sqlite", "src\AspNetCoreTest.Data.Sqlite\AspNetCoreTest.Data.Sqlite.xproj", "{ED2799B2-F98F-45A7-AFD9-068FD03E8743}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{4BFD52F0-E045-487D-B59A-B2B2967ED17B}"
+EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "AspNetCoreTest.Data.Models.Tests", "test\AspNetCoreTest.Data.Models.Tests\AspNetCoreTest.Data.Models.Tests.xproj", "{7F25B4C0-DB41-4770-9661-314AFC95D245}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -47,6 +51,10 @@ Global
 		{ED2799B2-F98F-45A7-AFD9-068FD03E8743}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ED2799B2-F98F-45A7-AFD9-068FD03E8743}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{ED2799B2-F98F-45A7-AFD9-068FD03E8743}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7F25B4C0-DB41-4770-9661-314AFC95D245}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7F25B4C0-DB41-4770-9661-314AFC95D245}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7F25B4C0-DB41-4770-9661-314AFC95D245}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7F25B4C0-DB41-4770-9661-314AFC95D245}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -57,5 +65,6 @@ Global
 		{78033EAE-FA19-4FC9-9056-500B672AF2C6} = {87CA11C6-C196-43B3-85B4-FF63BBBE2FDA}
 		{2BA7C6EF-E2C9-4F6D-A2B9-CB5B486752E1} = {87CA11C6-C196-43B3-85B4-FF63BBBE2FDA}
 		{ED2799B2-F98F-45A7-AFD9-068FD03E8743} = {87CA11C6-C196-43B3-85B4-FF63BBBE2FDA}
+		{7F25B4C0-DB41-4770-9661-314AFC95D245} = {4BFD52F0-E045-487D-B59A-B2B2967ED17B}
 	EndGlobalSection
 EndGlobal
