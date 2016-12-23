@@ -16,3 +16,5 @@ https://github.com/NLog/NLog/wiki/Tutorial
 
 запуск на линуксе
 https://docs.microsoft.com/en-us/aspnet/core/publishing/apache-proxy
+
+https://threejs.org/
