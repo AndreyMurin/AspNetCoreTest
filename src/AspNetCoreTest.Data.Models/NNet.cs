@@ -9,6 +9,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.FileProviders;
 using Newtonsoft.Json;
+using Microsoft.AspNetCore.Http;
+using System.Net.WebSockets;
+using System.Text;
 
 namespace AspNetCoreTest.Data.Models
 {
@@ -303,6 +306,75 @@ namespace AspNetCoreTest.Data.Models
                 return page.Substring(0, count);
             }
         }/**/
+
+        #region Websockets
+        // Список всех клиентов
+        private readonly List<WebSocket> Clients = new List<WebSocket>();
+        // Блокировка для обеспечения потокабезопасности
+        private readonly ReaderWriterLockSlim Locker = new ReaderWriterLockSlim();
+
+        public async Task SubscribeClient(HttpContext httpContext)
+        {
+            var webSocket = await httpContext.WebSockets.AcceptWebSocketAsync();
+
+            //Socket = socket;
+            // Добавляем его в список клиентов
+            Locker.EnterWriteLock();
+            try
+            {
+                Clients.Add(webSocket);
+            }
+            finally
+            {
+                Locker.ExitWriteLock();
+            }
+
+            while (webSocket.State == WebSocketState.Open)
+            {
+                try
+                {
+                    var token = CancellationToken.None;
+                    var buffer = new ArraySegment<Byte>(new Byte[4096]);
+                    var received = await webSocket.ReceiveAsync(buffer, token);
+
+                    switch (received.MessageType)
+                    {
+                        case WebSocketMessageType.Text:
+                            var request = Encoding.UTF8.GetString(buffer.Array,
+                                                    buffer.Offset,
+                                                    buffer.Count);
+                            var tmp = JsonConvert.DeserializeObject<WSRequest>(request);
+                            switch (tmp.Action)
+                            {
+                                case "":
+                                    break;
+                            }
+                            //var type = WebSocketMessageType.Text;
+                            //var data = Encoding.UTF8.GetBytes("Echo from server :" + request);
+                            //buffer = new ArraySegment<Byte>(data);
+                            //await webSocket.SendAsync(buffer, type, true, token);
+                            //SendToAll("Echo from server :" + request);
+                            break;
+                    }
+                }
+                catch (Exception e)
+                {
+                    //Error = e;
+                }
+            }/**/
+
+            Locker.EnterWriteLock();
+            try
+            {
+                Clients.Remove(webSocket);
+
+            }
+            finally
+            {
+                Locker.ExitWriteLock();
+            }
+        }
+        #endregion 
 
         #region IDisposable Support
         private bool disposedValue = false; // Для определения избыточных вызовов

@@ -15,9 +15,11 @@ namespace AspNetCoreTest
     {
         private readonly RequestDelegate _next;
         private readonly ILogger<WebsocketsMiddleware> _logger;
+        private readonly NNet _net;
 
-        public WebsocketsMiddleware(RequestDelegate next, ILogger<WebsocketsMiddleware> logger)
+        public WebsocketsMiddleware(RequestDelegate next, ILogger<WebsocketsMiddleware> logger, NNet net)
         {
+            _net = net;
             _next = next;
             _logger = logger;
             _logger.LogInformation(1112, "WebsocketsMiddleware constructor");
@@ -34,6 +36,9 @@ namespace AspNetCoreTest
                 {
                     case "/chat":
                         await Chat.NewClient(httpContext);
+                        break;
+                    case "/brain-torus":
+                        await _net.SubscribeClient(httpContext);
                         break;
                     default:
                         _logger.LogError(1113, "Websocket path not founded! path = {path}", path);

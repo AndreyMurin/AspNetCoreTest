@@ -13,7 +13,7 @@ namespace AspNetCoreTest.Controllers
     {
         private IStorage storage;
         private readonly ILogger<HomeController> _logger;
-        private NNet _net;
+        private readonly NNet _net;
 
         public HomeController(IStorage storage, ILogger<HomeController> logger, NNet net)
         {
