@@ -10,4 +10,10 @@ namespace AspNetCoreTest.Data.Models
         public string Action { get; set; }
         public List<string> Args { get; set; }
     }
+
+    public class WSResponse
+    {
+        public string Error { get; set; }
+        //public List<string> Args { get; set; }
+    }
 }
