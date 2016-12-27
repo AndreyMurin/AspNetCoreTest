@@ -70,7 +70,7 @@ namespace AspNetCoreTest
 
             services.AddSingleton<IRnd, Rnd>();
 
-            services.AddSingleton<NNet, NNet>();
+            services.AddSingleton<NNetServer, NNetServer>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

@@ -15,9 +15,9 @@ namespace AspNetCoreTest
     {
         private readonly RequestDelegate _next;
         private readonly ILogger<WebsocketsMiddleware> _logger;
-        private readonly NNet _net;
+        private readonly NNetServer _net;
 
-        public WebsocketsMiddleware(RequestDelegate next, ILogger<WebsocketsMiddleware> logger, NNet net)
+        public WebsocketsMiddleware(RequestDelegate next, ILogger<WebsocketsMiddleware> logger, NNetServer net)
         {
             _net = net;
             _next = next;
