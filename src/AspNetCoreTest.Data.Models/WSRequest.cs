@@ -14,6 +14,7 @@ namespace AspNetCoreTest.Data.Models
 
     public class WSResponse
     {
+        public string Action { get; set; }
         public string Error { get; set; }
         public string Message { get; set; }
         //public List<string> Args { get; set; }

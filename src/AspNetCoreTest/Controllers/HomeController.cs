@@ -46,6 +46,13 @@ namespace AspNetCoreTest.Controllers
             return View();
         }
 
+        public IActionResult BrainTorus()
+        {
+            //ViewData["Message"] = "";
+
+            return View();
+        }
+
         public IActionResult Error()
         {
             return View();

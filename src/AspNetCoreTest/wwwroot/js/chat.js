@@ -25,7 +25,7 @@ $().ready(function () {
         $("#spanStatus").text("disconnected." + reason);
     };
     $("#btnSend").click(function () {
-        if (webSocket.readyState == WebSocket.OPEN) {
+        if (webSocket.readyState === WebSocket.OPEN) {
             webSocket.send($("#textInput").val());
         }
         else {

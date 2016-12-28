@@ -62,12 +62,31 @@ namespace AspNetCoreTest.Data.Models
                             {
                                 // подписка на изменения в сети
                                 case "subscribe":
-                                    if (tmp.ArgsInt.Count < 6) { await SendError(webSocket, "Число аргументов ArgsInt должно быть кратно 6"); return; }
+                                    if (tmp.ArgsInt.Count < 6) { await SendError(webSocket, "Число аргументов ArgsInt должно быть >6", tmp.Action); return; }
+                                    if (tmp.ArgsInt.Count % 6 != 0) { await SendError(webSocket, "Число аргументов ArgsInt должно быть кратно 6", tmp.Action); return; }
 
                                     var val = new List<NRange>();
+                                    for (var i = 0; i < tmp.ArgsInt.Count; i=i+6)
+                                    {
+                                        val.Add(new NRange()
+                                        {
+                                            MinX = tmp.ArgsInt[i + 0],
+                                            MinY = tmp.ArgsInt[i + 1],
+                                            MinZ = tmp.ArgsInt[i + 2],
+                                            MaxX = tmp.ArgsInt[i + 3],
+                                            MaxY = tmp.ArgsInt[i + 4],
+                                            MaxZ = tmp.ArgsInt[i + 5]
+                                        });
+                                    }
 
                                     // доки https://docs.microsoft.com/ru-ru/dotnet/articles/standard/collections/threadsafe/how-to-add-and-remove-items
+                                    // очень маловероятно что 1 клиент 2 раза сможет вызвать подписку больше 1 раза в одно и то же время!
                                     Subscribers.AddOrUpdate(webSocket, val, (key, existingVal)=> {
+
+                                        // If this delegate is invoked, then the key already exists.
+                                        // Here we make sure the city really is the same city we already have.
+                                        // (Support for multiple cities of the same name is left as an exercise for the reader.)
+                                        existingVal.AddRange(val);
 
                                         return existingVal;
                                     });
@@ -75,14 +94,14 @@ namespace AspNetCoreTest.Data.Models
                                     break;
                                 // полная отписка
                                 case "unsubscribe":
+                                    List<NRange> tmp1;
+                                    Subscribers.TryRemove(webSocket, out tmp1);
 
-                                    Subscribers.TryRemove(webSocket);
-
-                                    await SendMessage(webSocket, "OK");
+                                    await SendMessage(webSocket, "OK", tmp.Action);
                                     break;
                                 // запрос конфигурации сети
                                 case "getnetconfig":
-                                    await SendConfig(webSocket);
+                                    await SendConfig(webSocket, tmp.Action);
                                     break;
                             }
                             //var type = WebSocketMessageType.Text;
@@ -96,7 +115,7 @@ namespace AspNetCoreTest.Data.Models
                 catch (Exception e)
                 {
                     //Error = e;
-                    await SendError(webSocket, e.Message);
+                    await SendError(webSocket, e.Message, null);
                 }
             }/**/
 
@@ -109,31 +128,31 @@ namespace AspNetCoreTest.Data.Models
             {
                 LockerWS.ExitWriteLock();
             }
-
-            Subscribers.TryRemove(webSocket);
+            List<NRange> tmp2;
+            Subscribers.TryRemove(webSocket, out tmp2);
         }
 
-        private async Task SendRanges(WebSocket ws, List<NRange> ranges)
+        private async Task SendRanges(WebSocket ws, List<NRange> ranges, string action)
         {
-            var resp = new WSResponse();
+            var resp = new WSResponse { Action = action };
 
             await SendResponse(ws, JsonConvert.SerializeObject(resp, Formatting.Indented));
         }
 
-        private async Task SendConfig(WebSocket ws)
+        private async Task SendConfig(WebSocket ws, string action)
         {
-            var resp = new WSResponseConfig() { LenX = LenX, LenY = LenY, LenZ = LenZ };
+            var resp = new WSResponseConfig {Action = action, LenX = LenX, LenY = LenY, LenZ = LenZ };
             await SendResponse(ws, JsonConvert.SerializeObject(resp, Formatting.Indented));
         }
 
-        private async Task SendMessage(WebSocket ws, string message)
+        private async Task SendMessage(WebSocket ws, string message, string action)
         {
-            await SendResponse(ws, JsonConvert.SerializeObject(new WSResponse() { Message = message }, Formatting.Indented));
+            await SendResponse(ws, JsonConvert.SerializeObject(new WSResponse { Action = action, Message = message }, Formatting.Indented));
         }
 
-        private async Task SendError(WebSocket ws, string message)
+        private async Task SendError(WebSocket ws, string message, string action)
         {
-            await SendResponse(ws, JsonConvert.SerializeObject(new WSResponse() { Error = message }, Formatting.Indented));
+            await SendResponse(ws, JsonConvert.SerializeObject(new WSResponse { Action = action, Error = message }, Formatting.Indented));
         }
 
         // отправляем строку клиенту (а в строке JSON)
