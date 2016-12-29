@@ -24,6 +24,7 @@
   {
     "outputFileName": "wwwroot/js/brain.min.js",
     "inputFiles": [
+      "wwwroot/js/libs/brain.jquery.js",
       "wwwroot/js/brain.js"
     ]
   }

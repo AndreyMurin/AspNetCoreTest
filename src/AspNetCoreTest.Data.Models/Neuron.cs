@@ -34,6 +34,12 @@ namespace AspNetCoreTest.Data.Models
         // заряд нейрона при превышении определеного порга происходят разряды (spike)
         public int State { get; set; }
 
+        // для сериалиции обекта
+        public Neuron()
+        {
+            //Output = new List<NOutput>();
+        }
+
         public Neuron(IRnd rand)
         {
             Output = new List<NOutput>();

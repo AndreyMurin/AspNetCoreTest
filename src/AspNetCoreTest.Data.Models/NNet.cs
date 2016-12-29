@@ -100,6 +100,16 @@ namespace AspNetCoreTest.Data.Models
             Start();
         }
 
+        private bool checkNeurons()
+        {
+            if (Neurons == null)
+            {
+                _logger.LogInformation(1111, "NNet checkNeurons:: Neurons is null");
+                return false;
+            }
+            return true;
+        }
+
         // запускаем сеть в работу (потоки обработки нейронов не затрагиваются)
         public void Start()
         {
@@ -130,6 +140,7 @@ namespace AspNetCoreTest.Data.Models
         // в теории, таким способом мы можем задать очень медленный безусловный рефлекс задав более длинный путь (попетляв по слоям туда сюда)
         public void SetUnconditionedReflex(List<NCoords> path)
         {
+            if (!checkNeurons()) return;
             for (var i = 1; i < path.Count; i++)
             {
                 var beginN = Neurons[path[i - 1].Z][path[i - 1].Y][path[i - 1].X];
@@ -157,6 +168,7 @@ namespace AspNetCoreTest.Data.Models
         // довольно медленная операция, но она происходит тока после загрузки и создания
         private void _setOutputNeurons()
         {
+            if (!checkNeurons()) return;
             foreach (var z in Neurons)
                 foreach (var y in z)
                     foreach (var n in y)
@@ -181,6 +193,7 @@ namespace AspNetCoreTest.Data.Models
         // последний слой выходной так что там нет выходов строго (если что руками позже увеличим число выходов)
         private void _setRelations()
         {
+            if (!checkNeurons()) return;
             for (var z = 0; z < LenZ-1; z++)
             {
                 for (var y = 0; y < LenY; y++)
@@ -195,6 +208,7 @@ namespace AspNetCoreTest.Data.Models
 
         private List<NOutput> _createOutputForNeuron(int x, int y, int z)
         {
+            //if (!checkNeurons()) return;
             var output = new List<NOutput>();
             // по оси Z распределение норм тут не надо замыкать последний слой на первый
             var minZ = z - maxDeepRelationsZ; if (minZ < 1) minZ = 1; var maxZ = z + maxDeepRelationsZ; if (maxZ > LenZ - 1) maxZ = LenZ - 1;
@@ -227,6 +241,7 @@ namespace AspNetCoreTest.Data.Models
 
 
         private void startThreads() {
+            if (!checkNeurons()) return;
             //foreach (var n in Neurons.Where(i => i.isActive))
             foreach (var z in Neurons)
                 foreach (var y in z)
@@ -260,6 +275,7 @@ namespace AspNetCoreTest.Data.Models
         private void save()
         {
             _logger.LogInformation(1111, "NNet save");
+            if (!checkNeurons()) return;
             var File = System.IO.File.Create(_filename);
             using (var Writer = new System.IO.StreamWriter(File))
             {
@@ -272,13 +288,21 @@ namespace AspNetCoreTest.Data.Models
         {
             _logger.LogInformation(1111, "NNet load");
             // херовая идея => слишком много данных копируется. по идее надо как то десериализовать сразу в текущий объект. пока для тестов оставлю так
-            var tmp = JsonConvert.DeserializeObject<NNet>(File.ReadAllText(_filename));
-            // если Neurons static то присваивания не надо
-            this.Neurons = tmp.Neurons;
-            this.LenX = tmp.LenX;
-            this.LenY = tmp.LenY;
-            this.LenZ = tmp.LenZ;
+            try
+            {
+                var tmp = JsonConvert.DeserializeObject<NNet>(File.ReadAllText(_filename));
+                // если Neurons static то присваивания не надо
+                this.Neurons = tmp.Neurons;
+                this.LenX = tmp.LenX;
+                this.LenY = tmp.LenY;
+                this.LenZ = tmp.LenZ;
 
+            }
+            catch (Exception e)
+            {
+                _logger.LogInformation(1111, "NNet load error:" + e.ToString());
+            }
+            
             /*foreach (var n in Neurons)
             {
                 n.tick();
