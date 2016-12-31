@@ -4,17 +4,20 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 using System.Threading;
+using Newtonsoft.Json;
 
 namespace AspNetCoreTest.Data.Models
 {
     public class NOutput
     {
+        [JsonProperty("w")]
         // вес связи в диапазаоне думаю от -1 до 1 (возможно от -2 до 2 для повышения эффективности связи)
-        public double Weight;// { get; set; }
+        public double Weight { get; set; }
 
-        // индекс нейрона для сохранения-загрузки
-        public long Neuron;// { get; set; }
-
+        // индекс нейрона для сохранения-загрузки (long хватит за глаза)
+        [JsonProperty("n")]
+        public long Neuron { get; set; }
+        
         // ссылка на нейрон
         private Neuron _neuron;
 
@@ -34,7 +37,7 @@ namespace AspNetCoreTest.Data.Models
         // заряд нейрона при превышении определеного порга происходят разряды (spike)
         public int State { get; set; }
 
-        // для сериалиции обекта
+        // для сериалиции объекта
         public Neuron()
         {
             //Output = new List<NOutput>();

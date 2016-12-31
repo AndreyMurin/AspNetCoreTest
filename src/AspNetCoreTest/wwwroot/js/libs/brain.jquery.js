@@ -7,8 +7,8 @@
     $.bt.controls = function (elem, options) {
 
         var defaultSettings = {
-            url: "",
-            id: "",
+            draw: '.js-bt-draw',
+            url: ''
         },
         settings = $.extend({}, defaultSettings, options),
         base = this,
@@ -17,6 +17,7 @@
         netConfig,
         statusCont,
         textCont,
+        drawCont,
         sendRequest = function (obj) {
             console.log('sendRequest:', obj)
             if (webSocket.readyState === WebSocket.OPEN) {
@@ -39,6 +40,7 @@
         },
         create = function () {
             drawControls();
+            drawCont = $(settings.draw);
 
             var url = element.data('url');
             if (!url) {
@@ -53,7 +55,7 @@
             webSocket.onmessage = function (evt) {
                 //$("#spanText").append('<hr />' + evt.data);
                 var answer = JSON.parse(evt.data);
-                console.log('onmessage:', evt.data, answer)
+                //console.log('onmessage:', evt.data, answer)
                 if (typeof answer.Error !== 'undefined' && answer.Error) {
                     showError(answer.Error, answer.Action);
                 } else {
@@ -61,8 +63,8 @@
                         case 'getnetconfig':
                             netConfig = answer;
                             //console.log('getnetconfig:', netConfig);
+                            drawCont.btDraw('setConfig', netConfig);
                             break;
-
                     }
                 }
             };

@@ -25,8 +25,28 @@ namespace AspNetCoreTest.Data.Models
         
         // максимальная глубина проникновения связей по координатам (в каждую сторону!) 
         public const int maxDeepRelationsZ = 2;
-        public const int maxDeepRelationsY = 500;
-        public const int maxDeepRelationsX = 500;
+        //public const int maxDeepRelationsY = 500;
+        //public const int maxDeepRelationsX = 500;
+        [JsonIgnore]
+        public int maxDeepRelationsY
+        {
+            get
+            {
+                var res = (LenY-1)/2;
+                if (res > 500) return 500;
+                return res;
+            }
+        }
+        [JsonIgnore]
+        public int maxDeepRelationsX
+        {
+            get
+            {
+                var res = (LenX-1)/2;
+                if (res>500) return 500;
+                return res;
+            }
+        }
 
         // используем статик для разработки (чтобы получить доступ из нейронов) 
         protected static ILogger<NNet> _logger;
@@ -46,7 +66,11 @@ namespace AspNetCoreTest.Data.Models
         // внутри Output используем long это 2^64 = 18 446 744 073 709 551 616 я думаю этого хватит на нейроны всего человечества в целом
         // учесть в эволюционном алгоритме при изменении по осям икс игрек и зет => пересчитать Neuron.Neuron
         // помни адресацию по координатам Neurons[z][y][x]!
+        //[JsonObjectAttribute]
         public List<List<List<Neuron>>> Neurons { get; set; }
+
+        // тестируем сериализацию в лонг
+        public long LongTest { get; set; }
 
         // сеть трехмерная (договоримся что первый слой входы, тогда MaxX и MaxY определяют число входов)
         // последний слой - двигательные нейроны! тогда слоев должно быть минимум 3
@@ -65,8 +89,13 @@ namespace AspNetCoreTest.Data.Models
         // число одновременно запущеннных задач (активных нейронов, чтоб оперативно тормозить)
         public static int Threads = 0;
 
+        // пустой конструктор для сериалиции
+        public NNet() { }
+
         public NNet (ILogger<NNet> logger, IOptions<NNetConfig> optionsAccessor, IFileProvider provider, IRnd rand)
         {
+            // тестируем сериализацию в лонг
+            LongTest = 100123123123; // > 100 000 000 000
             _logger = logger;
             _optionsAccessor = optionsAccessor;
             _filename = _optionsAccessor.Value.FileName;
@@ -206,17 +235,20 @@ namespace AspNetCoreTest.Data.Models
             }
         }
 
+        // создаем выходные связи для нейрона
         private List<NOutput> _createOutputForNeuron(int x, int y, int z)
         {
+
             //if (!checkNeurons()) return;
             var output = new List<NOutput>();
             // по оси Z распределение норм тут не надо замыкать последний слой на первый
             var minZ = z - maxDeepRelationsZ; if (minZ < 1) minZ = 1; var maxZ = z + maxDeepRelationsZ; if (maxZ > LenZ - 1) maxZ = LenZ - 1;
             
             // а вот по икс и игрек хотелось бы замкнуть первые нейроны на последние
-            //todo сделать замыкание начала с концом ...
-            var minY = y - maxDeepRelationsY; if (minY < 0) minY = 0; var maxY = y + maxDeepRelationsY; if (maxY > LenY - 1) maxY = LenY - 1;
-            var minX = x - maxDeepRelationsX; if (minX < 0) minX = 0; var maxX = x + maxDeepRelationsX; if (maxX > LenX - 1) maxX = LenX - 1;
+            var minY = y - maxDeepRelationsY; /*if (minY < 0) minY = 0;*/ var maxY = y + maxDeepRelationsY;// if (maxY > LenY - 1) maxY = LenY - 1;
+            var minX = x - maxDeepRelationsX; /*if (minX < 0) minX = 0;*/ var maxX = x + maxDeepRelationsX;// if (maxX > LenX - 1) maxX = LenX - 1;
+
+            //_logger.LogInformation(1111, "NNet _createOutputForNeuron  {x}-{xx} {y}-{yy} {z}-{zz}", minX, maxX, minY, maxY, minZ, maxZ);
 
             for (var zz = minZ; zz <= maxZ; zz++) // первый слой входы (входы исключительно на другие слои)
             {
@@ -224,12 +256,22 @@ namespace AspNetCoreTest.Data.Models
                 {
                     for (var xx = minX; xx <= maxX; xx++)
                     {
-                        // связь на себя не допускаем, тока косвенная - через другие нейроны
-                        if (x == xx && yy == y && z == zz) continue;
+                        // замыкания по оси икс и игрек
+                        var yyy = yy; var xxx = xx;
+                        if (yy < 0) yyy = LenY + yy; if (yy > LenY - 1) yyy = yy - (LenY - 1);
+                        if (xx < 0) xxx = LenX + xx; if (xx > LenX - 1) xxx = xx - (LenX - 1);
 
-                        var coords = new NCoords(xx, yy, zz);
+                        // связь на себя не допускаем, тока косвенная - через другие нейроны
+                        if (x == xxx && yyy == y && z == zz) continue;
+
+                        var coords = new NCoords(xxx, yyy, zz);
                         var o = new NOutput() { Neuron = coords.ToSingle(LenX, LenY), Weight = _rand.NextDouble(minWeight, maxWeight) };
-                        o.SetNeuron(Neurons[zz][yy][xx]);
+                        /*if (z == 0)
+                        {
+                            _logger.LogInformation(1111, "NNet _createOutputForNeuron for {x} {y} {z} => {xx} {yy} {zz}", x, y, z, xxx, yyy, zz);
+                        }/**/
+
+                        o.SetNeuron(Neurons[zz][yyy][xxx]);
 
                         output.Add(o);
                     }
@@ -290,13 +332,15 @@ namespace AspNetCoreTest.Data.Models
             // херовая идея => слишком много данных копируется. по идее надо как то десериализовать сразу в текущий объект. пока для тестов оставлю так
             try
             {
+                
                 var tmp = JsonConvert.DeserializeObject<NNet>(File.ReadAllText(_filename));
+                //_logger.LogInformation(1111, "NNet load !!!");
                 // если Neurons static то присваивания не надо
                 this.Neurons = tmp.Neurons;
                 this.LenX = tmp.LenX;
                 this.LenY = tmp.LenY;
                 this.LenZ = tmp.LenZ;
-
+                /**/
             }
             catch (Exception e)
             {

@@ -13,7 +13,7 @@ $().ready(function () {
             $("#spanStatus").text("Connection is closed");
         }
     });*/
-
+    $('.js-bt-draw').btDraw();
     $('.js-bt-controls').btControls();
     
 });
