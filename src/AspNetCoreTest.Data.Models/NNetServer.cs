@@ -150,6 +150,13 @@ namespace AspNetCoreTest.Data.Models
             //_logger.LogInformation(1113, "NNetServer SubscribeClient end");
         }
 
+        private Task createTaskSendNeurons(WebSocket ws, List<NeuronForDraw> neurons, string action) {
+            return Task.Run(() =>
+            {
+                return SendResponse(ws, JsonConvert.SerializeObject(new WSResponseNeurons { Action = action, Neurons = neurons }, Formatting.Indented));
+            });
+        }
+
         // отправляем данные по выбранным нейронам
         private async Task SendNeurons(WebSocket ws, List<NRange> ranges, string action)
         {
@@ -168,12 +175,8 @@ namespace AspNetCoreTest.Data.Models
 
                             if (neurons.Count >= MaxNeuronsForSend)
                             {
-                                var _neurons = neurons;
+                                tasks.Add(createTaskSendNeurons(ws, neurons, action));
                                 neurons = new List<NeuronForDraw>();
-                                tasks.Add(Task.Run(() =>
-                                {
-                                    return SendResponse(ws, JsonConvert.SerializeObject(new WSResponseNeurons { Action = action, Neurons = _neurons }, Formatting.Indented));
-                                }));
                             }
                         }
                     }
@@ -181,10 +184,7 @@ namespace AspNetCoreTest.Data.Models
             }
             if (neurons.Any())
             {
-                tasks.Add(Task.Run(() =>
-                {
-                    return SendResponse(ws, JsonConvert.SerializeObject(new WSResponseNeurons { Action = action, Neurons = neurons }, Formatting.Indented));
-                }));
+                tasks.Add(createTaskSendNeurons(ws, neurons, action));
             }
 
             await Task.WhenAll(tasks);
