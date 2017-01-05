@@ -186,7 +186,7 @@ namespace AspNetCoreTest.Data.Models
                 }
                 if (!founded)
                 {
-                    var o = new NOutput() { Neuron = destN, Weight = maxWeight };
+                    var o = new NRelation() { Neuron = destN, Weight = maxWeight };
                     o.SetNeuron(Neurons[path[i].Z][path[i].Y][path[i].X]);
                     beginN.Output.Add(o);
                 }
@@ -217,7 +217,7 @@ namespace AspNetCoreTest.Data.Models
                     }
         }
 
-        // установка связей (максимум макс инт!!!! так что ограничимся 2-3 слоя) глубина задана константами maxDeepRelationsX(YZ).
+        // установка связей (максимум макс инт (индекс List - int)!!!! так что ограничимся 2-3 слоя) глубина задана константами maxDeepRelationsX(YZ).
         // кроме первого слоя (там входы) и на первый слой тоже не делаем связи
         // последний слой выходной так что там нет выходов строго (если что руками позже увеличим число выходов)
         private void _setRelations()
@@ -235,12 +235,33 @@ namespace AspNetCoreTest.Data.Models
             }
         }
 
+        protected List<NRelation> findNeuronInputs(int x, int y, int z)
+        {
+            var n = new NCoords(x,y,z).ToSingle(LenX, LenY);
+
+            var res = new List<NRelation>();
+            for (var zz = 0; zz < LenZ; zz++)
+            {
+                for (var yy = 0; yy < LenY; yy++)
+                {
+                    for (var xx = 0; xx < LenX; xx++)
+                    {
+                        foreach(var o in Neurons[zz][yy][xx].Output)
+                        {
+                            if (n == o.Neuron) res.Add(o);
+                        }
+                    }
+                }
+            }
+            return res;
+        }
+
         // создаем выходные связи для нейрона
-        private List<NOutput> _createOutputForNeuron(int x, int y, int z)
+        private List<NRelation> _createOutputForNeuron(int x, int y, int z)
         {
 
             //if (!checkNeurons()) return;
-            var output = new List<NOutput>();
+            var output = new List<NRelation>();
             // по оси Z распределение норм тут не надо замыкать последний слой на первый
             var minZ = z - maxDeepRelationsZ; if (minZ < 1) minZ = 1; var maxZ = z + maxDeepRelationsZ; if (maxZ > LenZ - 1) maxZ = LenZ - 1;
             
@@ -265,7 +286,7 @@ namespace AspNetCoreTest.Data.Models
                         if (x == xxx && yyy == y && z == zz) continue;
 
                         var coords = new NCoords(xxx, yyy, zz);
-                        var o = new NOutput() { Neuron = coords.ToSingle(LenX, LenY), Weight = _rand.NextDouble(minWeight, maxWeight) };
+                        var o = new NRelation() { Neuron = coords.ToSingle(LenX, LenY), Weight = _rand.NextDouble(minWeight, maxWeight) };
                         /*if (z == 0)
                         {
                             _logger.LogInformation(1111, "NNet _createOutputForNeuron for {x} {y} {z} => {xx} {yy} {zz}", x, y, z, xxx, yyy, zz);

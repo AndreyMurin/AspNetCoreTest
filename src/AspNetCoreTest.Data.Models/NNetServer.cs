@@ -62,20 +62,23 @@ namespace AspNetCoreTest.Data.Models
                             {
                                 // подписка на изменения в сети
                                 case "subscribe":
-                                    if (tmp.ArgsInt.Count < 6) { await SendError(webSocket, "Число аргументов ArgsInt должно быть >6", tmp.Action); return; }
+                                    if (tmp.ArgsInt.Count < 6) { await SendError(webSocket, "Число аргументов ArgsInt должно быть >= 6", tmp.Action); return; }
                                     if (tmp.ArgsInt.Count % 6 != 0) { await SendError(webSocket, "Число аргументов ArgsInt должно быть кратно 6", tmp.Action); return; }
 
                                     var val = new List<NRange>();
                                     for (var i = 0; i < tmp.ArgsInt.Count; i=i+6)
                                     {
+                                        // обязательно проверить кто раньше первый или второй и это важно
+                                        var min = new NCoords(tmp.ArgsInt[i + 0], tmp.ArgsInt[i + 1], tmp.ArgsInt[i + 2]);
+                                        var max = new NCoords(tmp.ArgsInt[i + 3], tmp.ArgsInt[i + 4], tmp.ArgsInt[i + 5]);
+                                        if (max.ToSingle(LenX, LenY) < min.ToSingle(LenX, LenY))
+                                        {
+                                            var t = min; min = max; max = t;
+                                        }
                                         val.Add(new NRange()
                                         {
-                                            MinX = tmp.ArgsInt[i + 0],
-                                            MinY = tmp.ArgsInt[i + 1],
-                                            MinZ = tmp.ArgsInt[i + 2],
-                                            MaxX = tmp.ArgsInt[i + 3],
-                                            MaxY = tmp.ArgsInt[i + 4],
-                                            MaxZ = tmp.ArgsInt[i + 5]
+                                            MinX = min.X, MinY = min.Y, MinZ = min.Z,
+                                            MaxX = max.X, MaxY = max.Y, MaxZ = max.Z
                                         });
                                     }
 
@@ -90,7 +93,10 @@ namespace AspNetCoreTest.Data.Models
 
                                         return existingVal;
                                     });
-                                    
+
+                                    // сразу отправим полные данные о выбранных нейронах
+                                    await SendNeurons(webSocket, val, tmp.Action);
+
                                     break;
                                 // полная отписка
                                 case "unsubscribe":
@@ -132,12 +138,44 @@ namespace AspNetCoreTest.Data.Models
             Subscribers.TryRemove(webSocket, out tmp2);
         }
 
-        private async Task SendRanges(WebSocket ws, List<NRange> ranges, string action)
+        // отправляем данные по выбранным нейронам
+        private async Task SendNeurons(WebSocket ws, List<NRange> ranges, string action)
+        {
+            //var resp = new WSResponseNeurons { Action = action, Neurons = _getOutputNeurons(ranges) };
+            var tasks = new List<Task>();
+            foreach (var range in ranges)
+            {
+                for (int z = range.MinZ; z <= range.MaxZ; z++)
+                {
+                    for (int y = Math.Min(range.MinY, range.MaxY); y <= Math.Max(range.MinY, range.MaxY); y++)
+                    {
+                        // очень важно перед задачей создать копии аргументов. на след итрерации перед следующей задачей создадутся свои копии
+                        var _z = z;
+                        var _y = y;
+                        var _range = range;
+                        tasks.Add(Task.Run(() => {
+                            var neurons = new List<NeuronForDraw>();
+                            for (int x = Math.Min(_range.MinX, _range.MaxX); x <= Math.Max(_range.MinX, _range.MaxX); x++)
+                            {
+                                neurons.Add(new NeuronForDraw() { x = x, y = _y, z = _z, Neuron = Neurons[_z][_y][x], Input = findNeuronInputs(x, _y, _z) });
+                            }
+                            var resp = new WSResponseNeurons { Action = action, Neurons = neurons };
+                            return SendResponse(ws, JsonConvert.SerializeObject(resp, Formatting.Indented));
+                        }));
+                    }
+                }
+            }
+
+            await Task.WhenAll(tasks);
+            //await SendResponse(ws, JsonConvert.SerializeObject(resp, Formatting.Indented));
+        }
+
+        /*private async Task SendRanges(WebSocket ws, List<NRange> ranges, string action)
         {
             var resp = new WSResponse { Action = action };
 
             await SendResponse(ws, JsonConvert.SerializeObject(resp, Formatting.Indented));
-        }
+        }*/
 
         private async Task SendConfig(WebSocket ws, string action)
         {

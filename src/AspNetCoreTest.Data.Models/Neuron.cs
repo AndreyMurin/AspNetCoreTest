@@ -8,14 +8,14 @@ using Newtonsoft.Json;
 
 namespace AspNetCoreTest.Data.Models
 {
-    public class NOutput
+    public class NRelation
     {
-        [JsonProperty("w")]
+        [JsonProperty("w")] // минимизируем названия
         // вес связи в диапазаоне думаю от -1 до 1 (возможно от -2 до 2 для повышения эффективности связи)
         public double Weight { get; set; }
 
         // индекс нейрона для сохранения-загрузки (long хватит за глаза)
-        [JsonProperty("n")]
+        [JsonProperty("n")] // минимизируем названия
         public long Neuron { get; set; }
         
         // ссылка на нейрон
@@ -29,7 +29,7 @@ namespace AspNetCoreTest.Data.Models
         // запущены таймеры и потоки
         private bool _isStarted = false;
 
-        public List<NOutput> Output { get; set; }
+        public List<NRelation> Output { get; set; }
 
         // нейрон в активном состоянии идут разряды
         public bool isActive { get; set; }
@@ -45,11 +45,11 @@ namespace AspNetCoreTest.Data.Models
 
         public Neuron(IRnd rand)
         {
-            Output = new List<NOutput>();
+            Output = new List<NRelation>();
             State = rand.Next(0, 100);
         }
 
-        public void SetOutput(List<NOutput> output)
+        public void SetOutput(List<NRelation> output)
         {
             Output = output;
         }

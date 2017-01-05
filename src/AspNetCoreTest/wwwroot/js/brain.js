@@ -1,19 +1,10 @@
-﻿//var webSocket;
-//var netConfig;
+﻿(function ($) {
+    "use strict"; // jshint ;_;
 
-$().ready(function () {
-    //var port = window.location.port;
-    //port = (port == 80) ? '' : ':' + port;
-    
-    /*$("#btnSend").click(function () {
-        if (webSocket.readyState === WebSocket.OPEN) {
-            webSocket.send($("#textInput").val());
-        }
-        else {
-            $("#spanStatus").text("Connection is closed");
-        }
-    });*/
-    $('.js-bt-draw').btDraw();
-    $('.js-bt-controls').btControls();
-    
-});
+    $().ready(function () {
+
+        $('.js-bt-draw').btDraw({ controls: '.js-bt-controls' });
+        $('.js-bt-controls').btControls({ draw: '.js-bt-draw' });
+
+    });
+})(jQuery);

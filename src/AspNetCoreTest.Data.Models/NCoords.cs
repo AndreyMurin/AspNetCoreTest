@@ -69,5 +69,6 @@ namespace AspNetCoreTest.Data.Models
         public int MaxX;// { get; set; }
         public int MaxY;// { get; set; }
         public int MaxZ;// { get; set; }
+        
     }
 }

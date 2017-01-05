@@ -1,4 +1,6 @@
 ﻿(function ($) {
+    "use strict"; // jshint ;_;
+
     // задаем пространство имен
     if (!$.bt) $.bt = {};
 
@@ -8,7 +10,7 @@
 
         var defaultSettings = {
             draw: '.js-bt-draw',
-            url: ''
+            //url: ''
         },
         settings = $.extend({}, defaultSettings, options),
         base = this,
@@ -18,6 +20,8 @@
         statusCont,
         textCont,
         drawCont,
+        subscribeCont = {},
+
         sendRequest = function (obj) {
             console.log('sendRequest:', obj)
             if (webSocket.readyState === WebSocket.OPEN) {
@@ -33,7 +37,84 @@
         readConfig = function () {
             sendRequest({ Action: 'getnetconfig' });
         },
+        subscribe = function (ranges) {
+            // сохранять или нет выбранные области? пока нет смысла
+            console.log('subscribe');
+
+            // надо узнать какой нейрон младший по индексам
+            // один фиг все равно проверять на сервере поэтому порядок не важен
+            /*var needSwap = false;
+            if (arg.secondN.z < args.firstN.z) { // по оси z второй меньше значит меняем местами
+                needSwap = true;
+            } else if (arg.secondN.z == args.firstN.z) { // по оси z равно => сраниваем дальше
+                if (arg.secondN.y < args.firstN.y) {
+                    needSwap = true;
+                } else if (arg.secondN.y == args.firstN.y) {
+                    if (arg.secondN.x < args.firstN.x) {
+                        needSwap = true;
+                    }
+                }
+            }
+            if (needSwap) {
+                var tmp = args.firstN;
+                args.firstN = args.secondN;
+                args.secondN = tmp;
+            }*/
+
+            sendRequest({ Action: 'subscribe', ArgsInt: ranges });
+        },
+        clearSubscribeBlock = function () {
+            subscribeCont.MinX.val('');
+            subscribeCont.MinY.val('');
+            subscribeCont.MinZ.val('');
+            subscribeCont.MaxX.val('');
+            subscribeCont.MaxY.val('');
+            subscribeCont.MaxZ.val('');
+            subscribeCont.Button.prop('disabled', true);
+        },
+        fillSubscribeBlock = function (args) {
+            //console.log('fillSubscribeBlock', args);
+            clearSubscribeBlock();
+            if (args.firstN) {
+                subscribeCont.MinX.val(args.firstN.x);
+                subscribeCont.MinY.val(args.firstN.y);
+                subscribeCont.MinZ.val(args.firstN.z);
+            }
+            if (args.secondN) {
+                subscribeCont.MaxX.val(args.secondN.x);
+                subscribeCont.MaxY.val(args.secondN.y);
+                subscribeCont.MaxZ.val(args.secondN.z);
+            }
+            if (args.firstN && args.secondN) {
+                subscribeCont.Button.prop('disabled', false);
+            }
+        },
         drawControls = function (value) {
+            subscribeCont.Form = $('<form class="subscribe"></form>')
+                .on('submit', function () {
+                    return false;
+                })
+                .appendTo(element);
+            subscribeCont.MinX = $('<input name="ArgsInt" />').appendTo(subscribeCont.Form);
+            subscribeCont.MinY = $('<input name="ArgsInt" />').appendTo(subscribeCont.Form);
+            subscribeCont.MinZ = $('<input name="ArgsInt" />').appendTo(subscribeCont.Form);
+            subscribeCont.MaxX = $('<input name="ArgsInt" />').appendTo(subscribeCont.Form);
+            subscribeCont.MaxY = $('<input name="ArgsInt" />').appendTo(subscribeCont.Form);
+            subscribeCont.MaxZ = $('<input name="ArgsInt" />').appendTo(subscribeCont.Form);
+            subscribeCont.Button = $('<button class="btn btn-primary">Subscribe</button>')
+                .on('click', function () {
+                    var args = [
+                        subscribeCont.MinX.val(), subscribeCont.MinY.val(), subscribeCont.MinZ.val(),
+                        subscribeCont.MaxX.val(), subscribeCont.MaxY.val(), subscribeCont.MaxZ.val(),
+                    ];
+
+                    subscribe(args);
+                    return false;
+                })
+                .appendTo(subscribeCont.Form);
+
+            clearSubscribeBlock();
+
             statusCont = $('<div class="bt-controls-status"></div>').appendTo(element);
             textCont = $('<div class="bt-controls-text"></div>').appendTo(element);
             //element.html();
@@ -41,6 +122,9 @@
         create = function () {
             drawControls();
             drawCont = $(settings.draw);
+
+            var LongTest = 100123123123;
+            console.log('LongTest:', LongTest, LongTest+1);
 
             var url = element.data('url');
             if (!url) {
@@ -65,6 +149,9 @@
                             //console.log('getnetconfig:', netConfig);
                             drawCont.btDraw('setConfig', netConfig);
                             break;
+                        case 'subscribe':
+                            drawCont.btDraw('setNeurons', answer);
+                            break;
                     }
                 }
             };
@@ -86,11 +173,14 @@
 
             return base;
         };
-        /*this.getValues = function () {
-            
+        /*base.Subscribe = function (ranges) {
+            console.log('Subscribe', ranges);
+            return subscribe(ranges);
         };*/
-
-        return create.call(this);
+        base.fillSubscribeBlock = function (args) {
+            fillSubscribeBlock(args);
+        };
+        return create.call(base);
     };
 
 
