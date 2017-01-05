@@ -22,6 +22,9 @@ namespace AspNetCoreTest.Data.Models
 
 
         #region Websockets Server
+        // максимальное число нейронов для отправки
+        private const int MaxNeuronsForSend = 3;
+
         // Список всех клиентов
         private readonly List<WebSocket> Clients = new List<WebSocket>();
         // Блокировка для обеспечения потокабезопасности
@@ -31,6 +34,8 @@ namespace AspNetCoreTest.Data.Models
 
         public async Task SubscribeClient(HttpContext httpContext)
         {
+            //_logger.LogInformation(1113, "NNetServer SubscribeClient start");
+
             var webSocket = await httpContext.WebSockets.AcceptWebSocketAsync();
 
             //Socket = socket;
@@ -47,16 +52,18 @@ namespace AspNetCoreTest.Data.Models
 
             while (webSocket.State == WebSocketState.Open)
             {
+                //_logger.LogInformation(1113, "NNetServer SubscribeClient begin action");
                 try
                 {
                     //var token = CancellationToken.None;
                     var buffer = new ArraySegment<Byte>(new Byte[4096]); // не очень хорошо ограничивать вход 4 кб! расчетные модули могут посылать больше инфы за 1 раз
                     var received = await webSocket.ReceiveAsync(buffer, CancellationToken.None);
-
+                    
                     switch (received.MessageType)
                     {
                         case WebSocketMessageType.Text:
                             var request = Encoding.UTF8.GetString(buffer.Array, buffer.Offset, buffer.Count);
+                            //_logger.LogInformation(1113, "NNetServer SubscribeClient request = {request}", request);
                             var tmp = JsonConvert.DeserializeObject<WSRequest>(request);
                             switch (tmp.Action.ToLower())
                             {
@@ -121,9 +128,13 @@ namespace AspNetCoreTest.Data.Models
                 catch (Exception e)
                 {
                     //Error = e;
+                    //_logger.LogInformation(1113, "NNetServer SubscribeClient error {error}.", e.Message);
                     await SendError(webSocket, e.Message, null);
                 }
+                //_logger.LogInformation(1113, "NNetServer SubscribeClient end action");
             }/**/
+
+            //_logger.LogInformation(1113, "NNetServer SubscribeClient before removing");
 
             LockerWS.EnterWriteLock();
             try
@@ -136,6 +147,7 @@ namespace AspNetCoreTest.Data.Models
             }
             List<NRange> tmp2;
             Subscribers.TryRemove(webSocket, out tmp2);
+            //_logger.LogInformation(1113, "NNetServer SubscribeClient end");
         }
 
         // отправляем данные по выбранным нейронам
@@ -143,27 +155,36 @@ namespace AspNetCoreTest.Data.Models
         {
             //var resp = new WSResponseNeurons { Action = action, Neurons = _getOutputNeurons(ranges) };
             var tasks = new List<Task>();
+            var neurons = new List<NeuronForDraw>();
             foreach (var range in ranges)
             {
                 for (int z = range.MinZ; z <= range.MaxZ; z++)
                 {
                     for (int y = Math.Min(range.MinY, range.MaxY); y <= Math.Max(range.MinY, range.MaxY); y++)
                     {
-                        // очень важно перед задачей создать копии аргументов. на след итрерации перед следующей задачей создадутся свои копии
-                        var _z = z;
-                        var _y = y;
-                        var _range = range;
-                        tasks.Add(Task.Run(() => {
-                            var neurons = new List<NeuronForDraw>();
-                            for (int x = Math.Min(_range.MinX, _range.MaxX); x <= Math.Max(_range.MinX, _range.MaxX); x++)
+                        for (int x = Math.Min(range.MinX, range.MaxX); x <= Math.Max(range.MinX, range.MaxX); x++)
+                        {
+                            neurons.Add(new NeuronForDraw() { x = x, y = y, z = z, Neuron = Neurons[z][y][x], Input = findNeuronInputs(x, y, z) });
+
+                            if (neurons.Count >= MaxNeuronsForSend)
                             {
-                                neurons.Add(new NeuronForDraw() { x = x, y = _y, z = _z, Neuron = Neurons[_z][_y][x], Input = findNeuronInputs(x, _y, _z) });
+                                var _neurons = neurons;
+                                neurons = new List<NeuronForDraw>();
+                                tasks.Add(Task.Run(() =>
+                                {
+                                    return SendResponse(ws, JsonConvert.SerializeObject(new WSResponseNeurons { Action = action, Neurons = _neurons }, Formatting.Indented));
+                                }));
                             }
-                            var resp = new WSResponseNeurons { Action = action, Neurons = neurons };
-                            return SendResponse(ws, JsonConvert.SerializeObject(resp, Formatting.Indented));
-                        }));
+                        }
                     }
                 }
+            }
+            if (neurons.Any())
+            {
+                tasks.Add(Task.Run(() =>
+                {
+                    return SendResponse(ws, JsonConvert.SerializeObject(new WSResponseNeurons { Action = action, Neurons = neurons }, Formatting.Indented));
+                }));
             }
 
             await Task.WhenAll(tasks);
