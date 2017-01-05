@@ -193,6 +193,16 @@
             if (!secondN) return;
             secondN.material.setValues(opts);
             
+            var firstP = getNeuronIndexByPosition(firstN.position);
+            var secondP = getNeuronIndexByPosition(secondN.position);
+
+            for (var z = Math.min(firstP.z, secondP.z), maxZ = Math.max(firstP.z, secondP.z) ; z <= maxZ; z++) {
+                for (var y = Math.min(firstP.y, secondP.y), maxY = Math.max(firstP.y, secondP.y) ; y <= maxY ; y++) {
+                    for (var x = Math.min(firstP.x, secondP.x), maxX = Math.max(firstP.x, secondP.x) ; x <= maxX ; x++) {
+                        net[z][y][x].material.setValues(opts);
+                    }
+                }
+            }
         },
         // отработка клика на нейроне
         // первый клик выбирает начальный нейрон

@@ -117,11 +117,6 @@ namespace AspNetCoreTest.Data.Models
                                     await SendConfig(webSocket, tmp.Action);
                                     break;
                             }
-                            //var type = WebSocketMessageType.Text;
-                            //var data = Encoding.UTF8.GetBytes("Echo from server :" + request);
-                            //buffer = new ArraySegment<Byte>(data);
-                            //await webSocket.SendAsync(buffer, type, true, token);
-                            //SendToAll("Echo from server :" + request);
                             break;
                     }
                 }
@@ -165,8 +160,10 @@ namespace AspNetCoreTest.Data.Models
             var neurons = new List<NeuronForDraw>();
             foreach (var range in ranges)
             {
+                // диапазоны тут у нас правильные (от меньшего к большему)
                 for (int z = range.MinZ; z <= range.MaxZ; z++)
                 {
+                    // но x и y могут быть как меньше так и больше
                     for (int y = Math.Min(range.MinY, range.MaxY); y <= Math.Max(range.MinY, range.MaxY); y++)
                     {
                         for (int x = Math.Min(range.MinX, range.MaxX); x <= Math.Max(range.MinX, range.MaxX); x++)
