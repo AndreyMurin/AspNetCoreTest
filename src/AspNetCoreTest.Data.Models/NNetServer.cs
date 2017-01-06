@@ -175,7 +175,7 @@ namespace AspNetCoreTest.Data.Models
                             neurons.Add(new NeuronForDraw() {
                                 x = x, y = y, z = z,
                                 Neuron = Neurons[z][y][x],
-                                Input = needInputs ? findNeuronInputs(x, y, z) : new List<NRelation>()
+                                //Input = needInputs ? findNeuronInputs(x, y, z) : new List<NRelation>()
                             });
 
                             if (neurons.Count >= MaxNeuronsForSend)

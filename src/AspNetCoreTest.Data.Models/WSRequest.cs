@@ -13,7 +13,8 @@ namespace AspNetCoreTest.Data.Models
         public int z { get; set; }
         
         // массив входных нейронов. надо оптимизировать! здесь будет нул если выбрана вся сеть
-        public List<NRelation> Input { get; set; }
+        // входы не будем посылать: 1. будут дубли с выходами; 2. надо ресолвить координаты: у инпута есть нейрон, но это как раз всегда индекс именно этого нейрона а не входного
+        //public List<NRelation> Input { get; set; }
     }
 
     public class WSRequest

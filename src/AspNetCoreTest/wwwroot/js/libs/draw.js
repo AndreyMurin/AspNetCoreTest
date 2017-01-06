@@ -9,6 +9,13 @@
     $.bt.draw = function (elem, options) {
         var defaultSettings = {
             controls: ".js-bt-controls",
+            factorX: 4,
+            factorY: 4,
+            factorZ: -4,// чтобы входы были сверху
+            summandX: 1, // чтобы связи не сливались с осями
+            summandY: 1,
+            summandZ:-1,
+
         },
         settings = $.extend({}, defaultSettings, options),
         base = this,
@@ -25,7 +32,8 @@
         raycaster,
         mouse, INTERSECTED,
         firstN, secondN,
-
+        
+        
         // отрисовка осей
         buildAxis = function (src, dst, colorHex, dashed) {
             var geom = new THREE.Geometry(),
@@ -66,18 +74,69 @@
                 + '<br />' + camera.position.x + ', ' + camera.position.y + ', ' + camera.position.z;
             cameraInfo.html(JSON.stringify( camera.toJSON()) );
         },
+
+        normalizeMax = function (max, value, newMax) {
+            var ret = value * newMax / max;
+            if (ret > newMax) return newMax; // такое может быть когда конфиг устареет и в сети появятся новые веса или когда статистических данных нет совсем
+            return ret;
+        },
+
         // цвет нейрона по его состоянию        
         getColorByState = function (state) { },
         // цвет связи по ее весу
         getColorByWeight = function (weight) {
-            if (weight > 0) {
-                return 0x00ff00; // зеленая
-            }
-            return 0x0000ff; // синяя
-        },
+            // нормализуем вес, так чтобы он был от -255 до 255, хотя таким  способом те связи что около нуля будет просто не видно, хотя может это и к лучшему
+            var min = -1;
+            var max = 1;
+            if (netConfig.MaxWeight) max = netConfig.MaxWeight;
+            if (netConfig.MinWeight) min = netConfig.MinWeight;
+            
+            // parseInt("0x10") = 16
 
+            if (weight > 0) {
+                var nWeight = normalizeMax(max, weight, 255);//weight * 255 / max;
+                nWeight = ((+Math.floor(nWeight)).toString(16));
+                if (nWeight.length == 1) nWeight = '0' + nWeight;
+                //return parseInt('0x00ff00');//0x00ff00; // зеленая
+                //console.log(weight, nWeight, (+Math.floor(nWeight)).toString(16));
+                return parseInt('0xff' + nWeight + nWeight);//0xff0000; // красная (темно зеленый слишком близок к черному)
+            }
+            var nWeight = normalizeMax(-1 * min, -1 * weight, 255); // к отрицательному приводить не будем
+            nWeight = ((+Math.floor(nWeight)).toString(16));
+            if (nWeight.length==1) nWeight = '0' + nWeight;
+            //console.log(weight, nWeight, (+Math.floor(nWeight)).toString(16));
+            return parseInt('0x' + nWeight+nWeight+'ff');//0x0000ff; // синяя
+        },
+        longToPos = function(i, lenX, lenY, lenZ) {
+            // вычисляем z
+            var Z = Math.floor((i / (lenX * lenY)));
+
+            i = i - (Z * lenX * lenY);
+            var Y = Math.floor((i / lenX));
+            
+            var X = i - (Y * lenX);
+            return {x:X,y:Y,z:Z};
+        },
         setNeurons = function (neurons) {
-            console.log('setNeurons', neurons);
+            neurons = neurons.Neurons;
+            console.log('setNeurons', netConfig, neurons);
+            for (var i = 0; i < neurons.length; i++) {
+                var neuron = neurons[i];
+                var n = net[neuron.z][neuron.y][neuron.x];
+                //console.log('setNeurons n=', n);
+                var rels = new THREE.Object3D(); // потом возможно поместим в переменную
+                for (var j = 0; j < neuron.Neuron.Output.length; j++) {
+
+                    var pos = longToPos(neuron.Neuron.Output[j].n, netConfig.LenX, netConfig.LenY, netConfig.LenZ);
+                    //console.log('rel from', neuron.x, neuron.y, neuron.z, ' to ', neuron.Neuron.Output[j].n, pos.x, pos.y, pos.z);
+                    rels.add(buildAxis(
+                        new THREE.Vector3(neuron.x * settings.factorX + settings.summandX, neuron.y * settings.factorY + settings.summandY, neuron.z * settings.factorZ + settings.summandZ),
+                        new THREE.Vector3(pos.x * settings.factorX + settings.summandX, pos.y * settings.factorY + settings.summandY, pos.z * settings.factorZ + settings.summandZ), getColorByWeight(neuron.Neuron.Output[j].w), false)
+                    );
+                }
+                scene.add(rels);
+
+            }
         },
 
         // приватные свойства для создания нейронов
@@ -102,14 +161,14 @@
             // после изменения объекта обязательно вызвать .updateMatrix()
             //n.updateMatrix();
 
-            n.position.x = x * 3;
-            n.position.y = y * 3;
-            n.position.z = -z * 3;// чтобы входы были сверху
+            n.position.x = x * settings.factorX + settings.summandX;
+            n.position.y = y * settings.factorY + settings.summandY;
+            n.position.z = z * settings.factorZ + settings.summandZ;
             return n;
         },
         getNeuronIndexByPosition = function(pos)
         {
-            return {x:pos.x / 3, y:pos.y / 3,z:-pos.z / 3};
+            return { x: (pos.x - settings.summandX) / settings.factorX, y: (pos.y - settings.summandY) / settings.factorY, z: (pos.z - settings.summandZ) / settings.factorZ };
         },
         getNeuronByPosition = function (pos) {
             var ind = getNeuronIndexByPosition(pos);

@@ -225,7 +225,8 @@ namespace AspNetCoreTest.Data.Models
         }
 
         // поиск всех входов для нейрона (пока исключительно для отрисовки)
-        protected List<NRelation> findNeuronInputs(int x, int y, int z)
+        // не будем использовать
+        /*protected List<NRelation> findNeuronInputs(int x, int y, int z)
         {
             var n = new NCoords(x, y, z).ToSingle(LenX, LenY);
 
@@ -244,7 +245,7 @@ namespace AspNetCoreTest.Data.Models
                 }
             }
             return res;
-        }
+        }*/
 
         // очень тяжелая инициализация при большом количестве нейронов и связей, начальное значение вычисляем при инициализации и сохраняем в файле
         /*private void _initStatWeight()
