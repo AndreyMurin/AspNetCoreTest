@@ -44,5 +44,9 @@ namespace AspNetCoreTest.Data.Models
         public int LenY { get; set; }
         // длина по оси Z (число слоев)
         public int LenZ { get; set; }
+
+        // статистика по весам (если есть конечно)
+        public double MinWeight { get; set; }
+        public double MaxWeight { get; set; }
     }
 }

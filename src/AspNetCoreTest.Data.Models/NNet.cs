@@ -20,9 +20,15 @@ namespace AspNetCoreTest.Data.Models
     {
         // константы инициализации
         // макс мин вес связи
-        public const double minWeight = -1;
-        public const double maxWeight = 1;
-        
+        public const double MIN_WEIGHT = -1;
+        public const double MAX_WEIGHT = 1;
+
+        // а здесь будем хранить реальные минимум и максимум по весу связи (пока для отрисовки)
+        public double MinWeight { get; set; }
+        public double MaxWeight { get; set; }
+        // нужно ли вести статистку по весам? в продакшене отключим я думаю (посмотрим по ресурсам) (пока делаю константой, в дальнейшем может поменяю на переменную из конфига!)
+        public const bool NEED_STAT_WEIGHT = true;
+
         // максимальная глубина проникновения связей по координатам (в каждую сторону!) 
         public const int maxDeepRelationsZ = 2;
         //public const int maxDeepRelationsY = 500;
@@ -124,6 +130,9 @@ namespace AspNetCoreTest.Data.Models
                 _setRelations();
                 save();
             }
+
+            //_initStatWeight();
+
             _setOutputNeurons();
             startThreads();
             Start();
@@ -179,14 +188,14 @@ namespace AspNetCoreTest.Data.Models
                 {
                     if (output.Neuron == destN) // связь нашли усилим ее до макс и свалим
                     {
-                        output.Weight = maxWeight;
+                        output.Weight = MAX_WEIGHT;
                         founded = true;
                         break;
                     }
                 }
                 if (!founded)
                 {
-                    var o = new NRelation() { Neuron = destN, Weight = maxWeight };
+                    var o = new NRelation() { Neuron = destN, Weight = MAX_WEIGHT };
                     o.SetNeuron(Neurons[path[i].Z][path[i].Y][path[i].X]);
                     beginN.Output.Add(o);
                 }
@@ -201,7 +210,6 @@ namespace AspNetCoreTest.Data.Models
             foreach (var z in Neurons)
                 foreach (var y in z)
                     foreach (var n in y)
-                    {
                         foreach (var o in n.Output)
                         {
                             var coords = new NCoords(o.Neuron, LenX, LenY, LenZ);
@@ -214,8 +222,50 @@ namespace AspNetCoreTest.Data.Models
                                 _logger.LogInformation(1111, "NNet::_setOutputNeurons() {exc} \n{Neuron} = ({X},{Y},{Z})", e.Message, o.Neuron, coords.X, coords.Y, coords.Z);
                             }
                         }
-                    }
         }
+
+        // поиск всех входов для нейрона (пока исключительно для отрисовки)
+        protected List<NRelation> findNeuronInputs(int x, int y, int z)
+        {
+            var n = new NCoords(x, y, z).ToSingle(LenX, LenY);
+
+            var res = new List<NRelation>();
+            for (var zz = 0; zz < LenZ; zz++)
+            {
+                for (var yy = 0; yy < LenY; yy++)
+                {
+                    for (var xx = 0; xx < LenX; xx++)
+                    {
+                        foreach (var o in Neurons[zz][yy][xx].Output)
+                        {
+                            if (n == o.Neuron) res.Add(o);
+                        }
+                    }
+                }
+            }
+            return res;
+        }
+
+        // очень тяжелая инициализация при большом количестве нейронов и связей, начальное значение вычисляем при инициализации и сохраняем в файле
+        /*private void _initStatWeight()
+        {
+            #pragma warning disable CS0162 // Обнаружен недостижимый код
+            if (!NEED_STAT_WEIGHT) return;
+            #pragma warning restore CS0162 // Обнаружен недостижимый код
+            if (!checkNeurons()) return;
+
+            MinWeight = 0;
+            MaxWeight = 0;
+
+            foreach (var z in Neurons)
+                foreach (var y in z)
+                    foreach (var n in y)
+                        foreach (var o in n.Output)
+                        {
+                            if (MinWeight > o.Weight) MinWeight = o.Weight;
+                            if (MaxWeight < o.Weight) MaxWeight = o.Weight;
+                        }
+        }*/
 
         // установка связей (максимум макс инт (индекс List - int)!!!! так что ограничимся 2-3 слоя) глубина задана константами maxDeepRelationsX(YZ).
         // кроме первого слоя (там входы) и на первый слой тоже не делаем связи
@@ -235,32 +285,15 @@ namespace AspNetCoreTest.Data.Models
             }
         }
 
-        protected List<NRelation> findNeuronInputs(int x, int y, int z)
-        {
-            var n = new NCoords(x,y,z).ToSingle(LenX, LenY);
-
-            var res = new List<NRelation>();
-            for (var zz = 0; zz < LenZ; zz++)
-            {
-                for (var yy = 0; yy < LenY; yy++)
-                {
-                    for (var xx = 0; xx < LenX; xx++)
-                    {
-                        foreach(var o in Neurons[zz][yy][xx].Output)
-                        {
-                            if (n == o.Neuron) res.Add(o);
-                        }
-                    }
-                }
-            }
-            return res;
-        }
-
         // создаем выходные связи для нейрона
         private List<NRelation> _createOutputForNeuron(int x, int y, int z)
         {
+            if (NEED_STAT_WEIGHT)
+            {
+                MinWeight = 0;
+                MaxWeight = 0;
+            }
 
-            //if (!checkNeurons()) return;
             var output = new List<NRelation>();
             // по оси Z распределение норм тут не надо замыкать последний слой на первый
             var minZ = z - maxDeepRelationsZ; if (minZ < 1) minZ = 1; var maxZ = z + maxDeepRelationsZ; if (maxZ > LenZ - 1) maxZ = LenZ - 1;
@@ -286,7 +319,12 @@ namespace AspNetCoreTest.Data.Models
                         if (x == xxx && yyy == y && z == zz) continue;
 
                         var coords = new NCoords(xxx, yyy, zz);
-                        var o = new NRelation() { Neuron = coords.ToSingle(LenX, LenY), Weight = _rand.NextDouble(minWeight, maxWeight) };
+                        var o = new NRelation() { Neuron = coords.ToSingle(LenX, LenY), Weight = _rand.NextDouble(MIN_WEIGHT, MAX_WEIGHT) };
+                        if (NEED_STAT_WEIGHT)
+                        {
+                            if (MinWeight > o.Weight) MinWeight = o.Weight;
+                            if (MaxWeight < o.Weight) MaxWeight = o.Weight;
+                        }
                         /*if (z == 0)
                         {
                             _logger.LogInformation(1111, "NNet _createOutputForNeuron for {x} {y} {z} => {xx} {yy} {zz}", x, y, z, xxx, yyy, zz);
@@ -351,6 +389,7 @@ namespace AspNetCoreTest.Data.Models
         {
             _logger.LogInformation(1111, "NNet load");
             // херовая идея => слишком много данных копируется. по идее надо как то десериализовать сразу в текущий объект. пока для тестов оставлю так
+            // хотя копируются ссылки так что норм
             try
             {
                 
@@ -361,6 +400,9 @@ namespace AspNetCoreTest.Data.Models
                 this.LenX = tmp.LenX;
                 this.LenY = tmp.LenY;
                 this.LenZ = tmp.LenZ;
+                this.MinWeight = tmp.MinWeight;
+                this.MaxWeight = tmp.MaxWeight;
+
                 /**/
             }
             catch (Exception e)

@@ -160,6 +160,10 @@ namespace AspNetCoreTest.Data.Models
             var neurons = new List<NeuronForDraw>();
             foreach (var range in ranges)
             {
+                // если выбрана вся сеть то инпуты нет смысла гнать, в инпутах и так будут куча дублей их надо как-то разрулить бы
+                bool needInputs = true;
+                if (range.MinZ == 0 && range.MinY == 0 && range.MinZ == 0 && range.MaxX == LenX - 1 && range.MaxY == LenY - 1 && range.MaxZ == LenZ - 1) needInputs = false;
+
                 // диапазоны тут у нас правильные (от меньшего к большему)
                 for (int z = range.MinZ; z <= range.MaxZ; z++)
                 {
@@ -168,7 +172,11 @@ namespace AspNetCoreTest.Data.Models
                     {
                         for (int x = Math.Min(range.MinX, range.MaxX); x <= Math.Max(range.MinX, range.MaxX); x++)
                         {
-                            neurons.Add(new NeuronForDraw() { x = x, y = y, z = z, Neuron = Neurons[z][y][x], Input = findNeuronInputs(x, y, z) });
+                            neurons.Add(new NeuronForDraw() {
+                                x = x, y = y, z = z,
+                                Neuron = Neurons[z][y][x],
+                                Input = needInputs ? findNeuronInputs(x, y, z) : new List<NRelation>()
+                            });
 
                             if (neurons.Count >= MaxNeuronsForSend)
                             {
@@ -197,7 +205,7 @@ namespace AspNetCoreTest.Data.Models
 
         private async Task SendConfig(WebSocket ws, string action)
         {
-            var resp = new WSResponseConfig {Action = action, LenX = LenX, LenY = LenY, LenZ = LenZ };
+            var resp = new WSResponseConfig { Action = action, LenX = LenX, LenY = LenY, LenZ = LenZ, MinWeight = MinWeight, MaxWeight = MaxWeight };
             await SendResponse(ws, JsonConvert.SerializeObject(resp, Formatting.Indented));
         }
 

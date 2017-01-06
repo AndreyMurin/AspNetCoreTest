@@ -17,14 +17,14 @@
         controlsCont,
         cameraInfo,
         net,
-        firstN, secondN,
-
+        
         scene,
         camera,
         renderer,
         controls,
         raycaster,
         mouse, INTERSECTED,
+        firstN, secondN,
 
         // отрисовка осей
         buildAxis = function (src, dst, colorHex, dashed) {
@@ -65,6 +65,15 @@
             var info = camera.fov + ', ' + camera.aspect + ', ' + camera.near + ', ' + camera.far
                 + '<br />' + camera.position.x + ', ' + camera.position.y + ', ' + camera.position.z;
             cameraInfo.html(JSON.stringify( camera.toJSON()) );
+        },
+        // цвет нейрона по его состоянию        
+        getColorByState = function (state) { },
+        // цвет связи по ее весу
+        getColorByWeight = function (weight) {
+            if (weight > 0) {
+                return 0x00ff00; // зеленая
+            }
+            return 0x0000ff; // синяя
         },
 
         setNeurons = function (neurons) {
