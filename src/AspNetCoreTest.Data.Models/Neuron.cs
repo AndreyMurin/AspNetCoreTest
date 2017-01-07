@@ -46,7 +46,7 @@ namespace AspNetCoreTest.Data.Models
         public Neuron(IRnd rand)
         {
             Output = new List<NRelation>();
-            State = rand.Next(0, 100);
+            State = rand.Next(NNet.MIN_INIT_STATE, NNet.MAX_INIT_STATE);
         }
 
         public void SetOutput(List<NRelation> output)

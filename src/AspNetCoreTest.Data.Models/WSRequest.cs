@@ -46,8 +46,12 @@ namespace AspNetCoreTest.Data.Models
         // длина по оси Z (число слоев)
         public int LenZ { get; set; }
 
-        // статистика по весам (если есть конечно)
+        // статистика по весам (если есть конечно) (для отрисовки тока)
         public double MinWeight { get; set; }
         public double MaxWeight { get; set; }
+
+        // пороговые значения нейронов (для отрисовки тока)
+        public int MaxState { get; set; }
+        public int MinState { get; set; }
     }
 }

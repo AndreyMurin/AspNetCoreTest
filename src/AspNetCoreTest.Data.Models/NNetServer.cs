@@ -161,8 +161,8 @@ namespace AspNetCoreTest.Data.Models
             foreach (var range in ranges)
             {
                 // если выбрана вся сеть то инпуты нет смысла гнать, в инпутах и так будут куча дублей их надо как-то разрулить бы
-                bool needInputs = true;
-                if (range.MinZ == 0 && range.MinY == 0 && range.MinZ == 0 && range.MaxX == LenX - 1 && range.MaxY == LenY - 1 && range.MaxZ == LenZ - 1) needInputs = false;
+                //bool needInputs = true;
+                //if (range.MinZ == 0 && range.MinY == 0 && range.MinZ == 0 && range.MaxX == LenX - 1 && range.MaxY == LenY - 1 && range.MaxZ == LenZ - 1) needInputs = false;
 
                 // диапазоны тут у нас правильные (от меньшего к большему)
                 for (int z = range.MinZ; z <= range.MaxZ; z++)
@@ -205,7 +205,7 @@ namespace AspNetCoreTest.Data.Models
 
         private async Task SendConfig(WebSocket ws, string action)
         {
-            var resp = new WSResponseConfig { Action = action, LenX = LenX, LenY = LenY, LenZ = LenZ, MinWeight = MinWeight, MaxWeight = MaxWeight };
+            var resp = new WSResponseConfig { Action = action, LenX = LenX, LenY = LenY, LenZ = LenZ, MinWeight = MinWeight, MaxWeight = MaxWeight, MaxState=MAX_STATE, MinState=MIN_STATE };
             await SendResponse(ws, JsonConvert.SerializeObject(resp, Formatting.Indented));
         }
 

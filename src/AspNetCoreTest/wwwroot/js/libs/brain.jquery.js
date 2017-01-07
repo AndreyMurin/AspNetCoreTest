@@ -1,20 +1,20 @@
-﻿(function ($) {
+﻿( function ( $ ) {
     "use strict"; // jshint ;_;
 
     // задаем пространство имен
-    if (!$.bt) $.bt = {};
+    if ( !$.bt ) $.bt = {};
 
     var DATA_KEY = 'bt-controls';
 
-    $.bt.controls = function (elem, options) {
+    $.bt.controls = function ( elem, options ) {
 
         var defaultSettings = {
             draw: '.js-bt-draw',
             //url: ''
         },
-        settings = $.extend({}, defaultSettings, options),
+        settings = $.extend( {}, defaultSettings, options ),
         base = this,
-        element = $(elem),
+        element = $( elem ),
         webSocket,
         netConfig,
         statusCont,
@@ -22,24 +22,24 @@
         drawCont,
         subscribeCont = {},
 
-        sendRequest = function (obj) {
-            console.log('sendRequest:', obj)
-            if (webSocket.readyState === WebSocket.OPEN) {
-                var j = JSON.stringify(obj);
-                webSocket.send(j);
+        sendRequest = function ( obj ) {
+            console.log( 'sendRequest:', obj )
+            if ( webSocket.readyState === WebSocket.OPEN ) {
+                var j = JSON.stringify( obj );
+                webSocket.send( j );
             } else {
-                statusCont.text("Connection is closed");
+                statusCont.text( "Connection is closed" );
             }
         },
-        showError = function (err, action) {
-            textCont.append('<div class="alert alert-danger">' + (action ? '<b>' + action + ':</b> ' : '') + err + '</div>');
+        showError = function ( err, action ) {
+            textCont.append( '<div class="alert alert-danger">' + ( action ? '<b>' + action + ':</b> ' : '' ) + err + '</div>' );
         },
         readConfig = function () {
-            sendRequest({ Action: 'getnetconfig' });
+            sendRequest( { Action: 'getnetconfig' } );
         },
-        subscribe = function (ranges) {
+        subscribe = function ( ranges ) {
             // сохранять или нет выбранные области? пока нет смысла
-            console.log('subscribe');
+            console.log( 'subscribe' );
 
             // надо узнать какой нейрон младший по индексам
             // один фиг все равно проверять на сервере поэтому порядок не важен
@@ -61,114 +61,114 @@
                 args.secondN = tmp;
             }*/
 
-            sendRequest({ Action: 'subscribe', ArgsInt: ranges });
+            sendRequest( { Action: 'subscribe', ArgsInt: ranges } );
         },
         clearSubscribeBlock = function () {
-            subscribeCont.MinX.val('');
-            subscribeCont.MinY.val('');
-            subscribeCont.MinZ.val('');
-            subscribeCont.MaxX.val('');
-            subscribeCont.MaxY.val('');
-            subscribeCont.MaxZ.val('');
-            subscribeCont.Button.prop('disabled', true);
+            subscribeCont.MinX.val( '' );
+            subscribeCont.MinY.val( '' );
+            subscribeCont.MinZ.val( '' );
+            subscribeCont.MaxX.val( '' );
+            subscribeCont.MaxY.val( '' );
+            subscribeCont.MaxZ.val( '' );
+            subscribeCont.Button.prop( 'disabled', true );
         },
-        fillSubscribeBlock = function (args) {
+        fillSubscribeBlock = function ( args ) {
             //console.log('fillSubscribeBlock', args);
             clearSubscribeBlock();
-            if (args.firstN) {
-                subscribeCont.MinX.val(args.firstN.x);
-                subscribeCont.MinY.val(args.firstN.y);
-                subscribeCont.MinZ.val(args.firstN.z);
+            if ( args.firstN ) {
+                subscribeCont.MinX.val( args.firstN.x );
+                subscribeCont.MinY.val( args.firstN.y );
+                subscribeCont.MinZ.val( args.firstN.z );
             }
-            if (args.secondN) {
-                subscribeCont.MaxX.val(args.secondN.x);
-                subscribeCont.MaxY.val(args.secondN.y);
-                subscribeCont.MaxZ.val(args.secondN.z);
+            if ( args.secondN ) {
+                subscribeCont.MaxX.val( args.secondN.x );
+                subscribeCont.MaxY.val( args.secondN.y );
+                subscribeCont.MaxZ.val( args.secondN.z );
             }
-            if (args.firstN && args.secondN) {
-                subscribeCont.Button.prop('disabled', false);
+            if ( args.firstN && args.secondN ) {
+                subscribeCont.Button.prop( 'disabled', false );
             }
         },
-        drawControls = function (value) {
-            subscribeCont.Form = $('<form class="subscribe"></form>')
-                .on('submit', function () {
+        drawControls = function ( value ) {
+            subscribeCont.Form = $( '<form class="subscribe"></form>' )
+                .on( 'submit', function () {
                     return false;
-                })
-                .appendTo(element);
-            subscribeCont.MinX = $('<input name="ArgsInt" />').appendTo(subscribeCont.Form);
-            subscribeCont.MinY = $('<input name="ArgsInt" />').appendTo(subscribeCont.Form);
-            subscribeCont.MinZ = $('<input name="ArgsInt" />').appendTo(subscribeCont.Form);
-            subscribeCont.MaxX = $('<input name="ArgsInt" />').appendTo(subscribeCont.Form);
-            subscribeCont.MaxY = $('<input name="ArgsInt" />').appendTo(subscribeCont.Form);
-            subscribeCont.MaxZ = $('<input name="ArgsInt" />').appendTo(subscribeCont.Form);
-            subscribeCont.Button = $('<button class="btn btn-primary">Subscribe</button>')
-                .on('click', function () {
+                } )
+                .appendTo( element );
+            subscribeCont.MinX = $( '<input name="ArgsInt" />' ).appendTo( subscribeCont.Form );
+            subscribeCont.MinY = $( '<input name="ArgsInt" />' ).appendTo( subscribeCont.Form );
+            subscribeCont.MinZ = $( '<input name="ArgsInt" />' ).appendTo( subscribeCont.Form );
+            subscribeCont.MaxX = $( '<input name="ArgsInt" />' ).appendTo( subscribeCont.Form );
+            subscribeCont.MaxY = $( '<input name="ArgsInt" />' ).appendTo( subscribeCont.Form );
+            subscribeCont.MaxZ = $( '<input name="ArgsInt" />' ).appendTo( subscribeCont.Form );
+            subscribeCont.Button = $( '<button class="btn btn-primary">Subscribe</button>' )
+                .on( 'click', function () {
                     var args = [
                         subscribeCont.MinX.val(), subscribeCont.MinY.val(), subscribeCont.MinZ.val(),
                         subscribeCont.MaxX.val(), subscribeCont.MaxY.val(), subscribeCont.MaxZ.val(),
                     ];
 
-                    subscribe(args);
+                    subscribe( args );
                     return false;
-                })
-                .appendTo(subscribeCont.Form);
+                } )
+                .appendTo( subscribeCont.Form );
 
             clearSubscribeBlock();
 
-            statusCont = $('<div class="bt-controls-status"></div>').appendTo(element);
-            textCont = $('<div class="bt-controls-text"></div>').appendTo(element);
+            statusCont = $( '<div class="bt-controls-status"></div>' ).appendTo( element );
+            textCont = $( '<div class="bt-controls-text"></div>' ).appendTo( element );
             //element.html();
         },
         create = function () {
             drawControls();
-            drawCont = $(settings.draw);
+            drawCont = $( settings.draw );
 
             var LongTest = 100123123123;
-            console.log('LongTest:', LongTest, LongTest+1);
+            console.log( 'LongTest:', LongTest, LongTest + 1 );
 
-            var url = element.data('url');
-            if (!url) {
+            var url = element.data( 'url' );
+            if ( !url ) {
                 var host = window.location.host;
                 url = 'ws://' + host + '/brain-torus';
             }
-            webSocket = new WebSocket(url);
+            webSocket = new WebSocket( url );
             webSocket.onopen = function () {
-                statusCont.text("connected");
+                statusCont.text( "connected" );
                 readConfig();
             };
-            webSocket.onmessage = function (evt) {
+            webSocket.onmessage = function ( evt ) {
                 //$("#spanText").append('<hr />' + evt.data);
-                var answer = JSON.parse(evt.data);
+                var answer = JSON.parse( evt.data );
                 //console.log('onmessage:', evt.data, answer)
-                if (typeof answer.Error !== 'undefined' && answer.Error) {
-                    showError(answer.Error, answer.Action);
+                if ( typeof answer.Error !== 'undefined' && answer.Error ) {
+                    showError( answer.Error, answer.Action );
                 } else {
-                    switch (answer.Action) {
+                    switch ( answer.Action ) {
                         case 'getnetconfig':
                             netConfig = answer;
                             //console.log('getnetconfig:', netConfig);
-                            drawCont.btDraw('setConfig', netConfig);
+                            drawCont.btDraw( 'setConfig', netConfig );
                             break;
                         case 'subscribe':
-                            drawCont.btDraw('setNeurons', answer);
+                            drawCont.btDraw( 'setNeurons', answer );
                             break;
                     }
                 }
             };
-            webSocket.onerror = function (evt) {
-                console.log(evt);
+            webSocket.onerror = function ( evt ) {
+                console.log( evt );
                 //alert(evt.message);
                 //$("#spanText").append('<div class="alert alert-danger">' + evt.message + '</div>');
-                showError(evt.message);
+                showError( evt.message );
             };
             webSocket.onclose = function () {
-                console.log(arguments);
+                console.log( arguments );
                 var arg = arguments;
                 var reason = '';
-                if (typeof arguments !== undefined && arguments.length > 0 && typeof arguments[0].reason !== 'undefined') {
+                if ( typeof arguments !== undefined && arguments.length > 0 && typeof arguments[0].reason !== 'undefined' ) {
                     reason = ' reason: ' + arguments[0].reason;
                 }
-                statusCont.text("disconnected." + reason);
+                statusCont.text( "disconnected." + reason );
             };
 
             return base;
@@ -177,34 +177,33 @@
             console.log('Subscribe', ranges);
             return subscribe(ranges);
         };*/
-        base.fillSubscribeBlock = function (args) {
-            fillSubscribeBlock(args);
+        base.fillSubscribeBlock = function ( args ) {
+            fillSubscribeBlock( args );
         };
-        return create.call(base);
+        return create.call( base );
     };
 
 
     // обертка для jquery
-    $.fn.btControls = function (options, attrs) {
+    $.fn.btControls = function ( options, attrs ) {
         var instance;
-        if (typeof (options) == 'string') {
+        if ( typeof ( options ) == 'string' ) {
             var retValue = null;
-            this.each(function () {
-                instance = $.data(this, DATA_KEY);
-                if (instance && typeof (instance[options]) == 'function') {
-                    retValue = instance[options].call(instance, attrs);
+            this.each( function () {
+                instance = $.data( this, DATA_KEY );
+                if ( instance && typeof ( instance[options] ) == 'function' ) {
+                    retValue = instance[options].call( instance, attrs );
                 }
                 return retValue;
-            });
+            } );
             return retValue;
         }
-        else {
-            var elements = this.each(function () {
-                instance = new $.bt.controls(this, options);;
-                $.data(this, DATA_KEY, instance);
-                return instance;
-            });
-            return elements;
-        }
+        var elements = this.each( function () {
+            instance = new $.bt.controls( this, options );;
+            $.data( this, DATA_KEY, instance );
+            return instance;
+        } );
+        return elements;
+
     };
 })(jQuery);

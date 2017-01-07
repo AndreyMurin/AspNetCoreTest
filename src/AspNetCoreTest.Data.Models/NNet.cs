@@ -20,12 +20,26 @@ namespace AspNetCoreTest.Data.Models
     {
         // константы инициализации
         // макс мин вес связи (по идее инициализация должна быть очень слабой! в пределах 0.1 и даже возможно меньше)
-        public const double MIN_WEIGHT = -0.5;
-        public const double MAX_WEIGHT = 0.5;
+        public const double MIN_INIT_WEIGHT = -0.5;
+        public const double MAX_INIT_WEIGHT = 0.5;
 
+        // макс и мин для состояний нейронов
+        // пока не решил будут ли отрицательные состояния нейрнов в купе со связями или ограничимся тока отрицательными связями
+        public const int MIN_INIT_STATE = -50;
+        public const int MAX_INIT_STATE = 50;
+
+        // пороговые значения состояний при которых нейрон преходит в активное состояние
+        public const int MIN_STATE = -256;
+        public const int MAX_STATE = 256;
+        
         // а здесь будем хранить реальные минимум и максимум по весу связи (пока для отрисовки)
         public double MinWeight { get; set; }
         public double MaxWeight { get; set; }
+
+        // максимум и минимум состояний нейронов
+        //public double MinState { get; set; }
+        //public double MaxState { get; set; }
+
         // нужно ли вести статистку по весам? в продакшене отключим я думаю (посмотрим по ресурсам) (пока делаю константой, в дальнейшем может поменяю на переменную из конфига!)
         public const bool NEED_STAT_WEIGHT = true;
 
@@ -188,14 +202,14 @@ namespace AspNetCoreTest.Data.Models
                 {
                     if (output.Neuron == destN) // связь нашли усилим ее до макс и свалим
                     {
-                        output.Weight = MAX_WEIGHT;
+                        output.Weight = MAX_INIT_WEIGHT;
                         founded = true;
                         break;
                     }
                 }
                 if (!founded)
                 {
-                    var o = new NRelation() { Neuron = destN, Weight = MAX_WEIGHT };
+                    var o = new NRelation() { Neuron = destN, Weight = MAX_INIT_WEIGHT };
                     o.SetNeuron(Neurons[path[i].Z][path[i].Y][path[i].X]);
                     beginN.Output.Add(o);
                 }
@@ -320,7 +334,7 @@ namespace AspNetCoreTest.Data.Models
                         if (x == xxx && yyy == y && z == zz) continue;
 
                         var coords = new NCoords(xxx, yyy, zz);
-                        var o = new NRelation() { Neuron = coords.ToSingle(LenX, LenY), Weight = _rand.NextDouble(MIN_WEIGHT, MAX_WEIGHT) };
+                        var o = new NRelation() { Neuron = coords.ToSingle(LenX, LenY), Weight = _rand.NextDouble(MIN_INIT_WEIGHT, MAX_INIT_WEIGHT) };
                         if (NEED_STAT_WEIGHT)
                         {
                             if (MinWeight > o.Weight) MinWeight = o.Weight;
