@@ -19,9 +19,9 @@ namespace AspNetCoreTest.Data.Models
     public class NNet : IDisposable
     {
         // константы инициализации
-        // макс мин вес связи
-        public const double MIN_WEIGHT = -1;
-        public const double MAX_WEIGHT = 1;
+        // макс мин вес связи (по идее инициализация должна быть очень слабой! в пределах 0.1 и даже возможно меньше)
+        public const double MIN_WEIGHT = -0.5;
+        public const double MAX_WEIGHT = 0.5;
 
         // а здесь будем хранить реальные минимум и максимум по весу связи (пока для отрисовки)
         public double MinWeight { get; set; }
@@ -302,9 +302,9 @@ namespace AspNetCoreTest.Data.Models
             // а вот по икс и игрек хотелось бы замкнуть первые нейроны на последние
             var minY = y - maxDeepRelationsY; /*if (minY < 0) minY = 0;*/ var maxY = y + maxDeepRelationsY;// if (maxY > LenY - 1) maxY = LenY - 1;
             var minX = x - maxDeepRelationsX; /*if (minX < 0) minX = 0;*/ var maxX = x + maxDeepRelationsX;// if (maxX > LenX - 1) maxX = LenX - 1;
-
-            //_logger.LogInformation(1111, "NNet _createOutputForNeuron  {x}-{xx} {y}-{yy} {z}-{zz}", minX, maxX, minY, maxY, minZ, maxZ);
-
+            /*if (z==0 && y==1 && x==2)
+                _logger.LogInformation(2111, "NNet _createOutputForNeuron  {x}-{xx} {y}-{yy} {z}-{zz}", minX, maxX, minY, maxY, minZ, maxZ);
+            /**/
             for (var zz = minZ; zz <= maxZ; zz++) // первый слой входы (входы исключительно на другие слои)
             {
                 for (var yy = minY; yy <= maxY; yy++)
@@ -313,8 +313,8 @@ namespace AspNetCoreTest.Data.Models
                     {
                         // замыкания по оси икс и игрек
                         var yyy = yy; var xxx = xx;
-                        if (yy < 0) yyy = LenY + yy; if (yy > LenY - 1) yyy = yy - (LenY - 1);
-                        if (xx < 0) xxx = LenX + xx; if (xx > LenX - 1) xxx = xx - (LenX - 1);
+                        if (yy < 0) yyy = LenY + yy; if (yy > LenY - 1) yyy = yy - (LenY);
+                        if (xx < 0) xxx = LenX + xx; if (xx > LenX - 1) xxx = xx - (LenX);
 
                         // связь на себя не допускаем, тока косвенная - через другие нейроны
                         if (x == xxx && yyy == y && z == zz) continue;
@@ -326,9 +326,9 @@ namespace AspNetCoreTest.Data.Models
                             if (MinWeight > o.Weight) MinWeight = o.Weight;
                             if (MaxWeight < o.Weight) MaxWeight = o.Weight;
                         }
-                        /*if (z == 0)
+                        /*if (z == 0 && y == 1 && x == 2)
                         {
-                            _logger.LogInformation(1111, "NNet _createOutputForNeuron for {x} {y} {z} => {xx} {yy} {zz}", x, y, z, xxx, yyy, zz);
+                            _logger.LogInformation(1111, "NNet _createOutputForNeuron for ({x}, {y}, {z}) => {n} ({xx}, {yy}, {zz})", x, y, z, (new NCoords(xxx, yyy, zz)).ToSingle(LenX, LenY), xxx, yyy, zz);
                         }/**/
 
                         o.SetNeuron(Neurons[zz][yyy][xxx]);

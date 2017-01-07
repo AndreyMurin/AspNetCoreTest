@@ -9,7 +9,7 @@
     $.bt.draw = function (elem, options) {
         var defaultSettings = {
             controls: ".js-bt-controls",
-            factorX: 4,
+            factorX: 4, // растояние между нейронами
             factorY: 4,
             factorZ: -4,// чтобы входы были сверху
             summandX: 1, // чтобы связи не сливались с осями
@@ -35,14 +35,17 @@
         
         
         // отрисовка осей
-        buildAxis = function (src, dst, colorHex, dashed) {
+        buildAxis = function (src, dst, colorHex, dashed, opacity) {
+            if (typeof opacity === 'undefined') opacity = 1;
             var geom = new THREE.Geometry(),
                 mat; 
 
-            if(dashed) {
+            if (dashed) {
                 mat = new THREE.LineDashedMaterial({ linewidth: 1, color: colorHex, dashSize: 1, gapSize: 1 });
             } else {
-                mat = new THREE.LineBasicMaterial({ linewidth: 1, color: colorHex });
+                mat = new THREE.LineBasicMaterial({
+                    linewidth: 1, color: colorHex, opacity: opacity<1?opacity:1, transparent: opacity<1?true:false,
+                });
             }
 
             geom.vertices.push( src.clone() );
@@ -94,19 +97,27 @@
             // parseInt("0x10") = 16
 
             if (weight > 0) {
-                var nWeight = normalizeMax(max, weight, 255);//weight * 255 / max;
+                return 0xff0000;
+                /*var nWeight = normalizeMax(max, weight, 255);//weight * 255 / max;
                 nWeight = ((+Math.floor(nWeight)).toString(16));
                 if (nWeight.length == 1) nWeight = '0' + nWeight;
                 //return parseInt('0x00ff00');//0x00ff00; // зеленая
                 //console.log(weight, nWeight, (+Math.floor(nWeight)).toString(16));
                 return parseInt('0xff' + nWeight + nWeight);//0xff0000; // красная (темно зеленый слишком близок к черному)
+                */
             }
-            var nWeight = normalizeMax(-1 * min, -1 * weight, 255); // к отрицательному приводить не будем
+            return 0x0000ff; // синяя
+            /*var nWeight = normalizeMax(-1 * min, -1 * weight, 255); // к отрицательному приводить не будем
             nWeight = ((+Math.floor(nWeight)).toString(16));
             if (nWeight.length==1) nWeight = '0' + nWeight;
             //console.log(weight, nWeight, (+Math.floor(nWeight)).toString(16));
-            return parseInt('0x' + nWeight+nWeight+'ff');//0x0000ff; // синяя
+            return parseInt('0x' + nWeight + nWeight + 'ff');//0x0000ff; // синяя
+            */
         },
+        getOpacityByWeight = function (weight) {
+            return 0.2;
+        },
+
         longToPos = function(i, lenX, lenY, lenZ) {
             // вычисляем z
             var Z = Math.floor((i / (lenX * lenY)));
@@ -131,7 +142,8 @@
                     //console.log('rel from', neuron.x, neuron.y, neuron.z, ' to ', neuron.Neuron.Output[j].n, pos.x, pos.y, pos.z);
                     rels.add(buildAxis(
                         new THREE.Vector3(neuron.x * settings.factorX + settings.summandX, neuron.y * settings.factorY + settings.summandY, neuron.z * settings.factorZ + settings.summandZ),
-                        new THREE.Vector3(pos.x * settings.factorX + settings.summandX, pos.y * settings.factorY + settings.summandY, pos.z * settings.factorZ + settings.summandZ), getColorByWeight(neuron.Neuron.Output[j].w), false)
+                        new THREE.Vector3(pos.x * settings.factorX + settings.summandX, pos.y * settings.factorY + settings.summandY, pos.z * settings.factorZ + settings.summandZ),
+                        getColorByWeight(neuron.Neuron.Output[j].w), false, getOpacityByWeight(neuron.Neuron.Output[j].w))
                     );
                 }
                 scene.add(rels);
