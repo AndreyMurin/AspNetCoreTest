@@ -8,13 +8,16 @@ using Newtonsoft.Json;
 
 namespace AspNetCoreTest.Data.Models
 {
+    // 32+64=96 (12 байт)
     public class NRelation
     {
         [JsonProperty("w")] // минимизируем названия
         // вес связи в диапазаоне думаю от -1 до 1 (возможно от -2 до 2 для повышения эффективности связи)
+        // 32 бита
         public float Weight { get; set; }
 
         // индекс нейрона для сохранения-загрузки (long хватит за глаза)
+        // 64 бита
         [JsonProperty("n")] // минимизируем названия
         public long Neuron { get; set; }
         

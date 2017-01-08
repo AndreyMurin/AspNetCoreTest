@@ -294,11 +294,11 @@ namespace AspNetCoreTest.Data.Models
                 {
                     for (var x = 0; x < LenX; x++)
                     {
+                        Neurons[z][y][x].SetOutput(_createOutputForNeuron(x, y, z));
                         if (x % 500 == 0)
                         {
-                            _logger.LogInformation(1111, "NNet _setRelations z={z}, y={y}, x={x}", z, y, x);
+                            _logger.LogInformation(1111, "NNet _setRelations z={z}, y={y}, x={x}. Relations count={c}", z, y, x, Neurons[z][y][x].Output.Count);
                         }
-                        Neurons[z][y][x].SetOutput(_createOutputForNeuron(x, y, z));
                     }
                 }
             }
