@@ -12,16 +12,19 @@ namespace AspNetCoreTest.Data.Models
     {
         [JsonProperty("w")] // минимизируем названия
         // вес связи в диапазаоне думаю от -1 до 1 (возможно от -2 до 2 для повышения эффективности связи)
-        public double Weight { get; set; }
+        public float Weight { get; set; }
 
         // индекс нейрона для сохранения-загрузки (long хватит за глаза)
         [JsonProperty("n")] // минимизируем названия
         public long Neuron { get; set; }
         
-        // ссылка на нейрон
-        private Neuron _neuron;
+        // ссылка на нейрон (экономим оперативку)
+        //private Neuron _neuron;
 
-        public void SetNeuron(Neuron neuron) { _neuron = neuron; } // никаких ref в параметрах не надо!
+        public void SetNeuron(Neuron neuron) // никаких ref в параметрах не надо!
+        {
+            //_neuron = neuron;
+        }
     }
 
     public class Neuron

@@ -9,6 +9,7 @@ namespace AspNetCoreTest.Data.Models
     {
         int Next(int minValue, int maxValue);
         double NextDouble(double minValue, double maxValue);
+        float NextFloat(float minValue, float maxValue);
     }
 
     public class Rnd : IRnd
@@ -30,6 +31,9 @@ namespace AspNetCoreTest.Data.Models
         {
             return _rand.NextDouble() * (maxValue - minValue) + minValue;
         }
-
+        public float NextFloat(float minValue, float maxValue)
+        {
+            return (float)_rand.NextDouble() * (maxValue - minValue) + minValue;
+        }
     }
 }

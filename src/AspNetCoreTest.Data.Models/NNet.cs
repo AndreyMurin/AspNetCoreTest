@@ -20,8 +20,8 @@ namespace AspNetCoreTest.Data.Models
     {
         // константы инициализации
         // макс мин вес связи (по идее инициализация должна быть очень слабой! в пределах 0.1 и даже возможно меньше)
-        public const double MIN_INIT_WEIGHT = -0.5;
-        public const double MAX_INIT_WEIGHT = 0.5;
+        public const float MIN_INIT_WEIGHT = -0.5F;
+        public const float MAX_INIT_WEIGHT = 0.5F;
 
         // макс и мин для состояний нейронов
         // пока не решил будут ли отрицательные состояния нейрнов в купе со связями или ограничимся тока отрицательными связями
@@ -33,8 +33,8 @@ namespace AspNetCoreTest.Data.Models
         public const int MAX_STATE = 256;
         
         // а здесь будем хранить реальные минимум и максимум по весу связи (пока для отрисовки)
-        public double MinWeight { get; set; }
-        public double MaxWeight { get; set; }
+        public float MinWeight { get; set; }
+        public float MaxWeight { get; set; }
 
         // максимум и минимум состояний нейронов
         //public double MinState { get; set; }
@@ -44,16 +44,16 @@ namespace AspNetCoreTest.Data.Models
         public const bool NEED_STAT_WEIGHT = true;
 
         // максимальная глубина проникновения связей по координатам (в каждую сторону!) 
-        public const int maxDeepRelationsZ = 2;
-        //public const int maxDeepRelationsY = 500;
-        //public const int maxDeepRelationsX = 500;
+        public const int MAX_DEEP_RELATIONS_Z = 2;
+        private const int MAX_DEEP_RELATIONS_Y = 10;
+        private const int MAX_DEEP_RELATIONS_X = 10;
         [JsonIgnore]
         public int maxDeepRelationsY
         {
             get
             {
                 var res = (LenY-1)/2;
-                if (res > 500) return 500;
+                if (res > MAX_DEEP_RELATIONS_Y) return MAX_DEEP_RELATIONS_Y;
                 return res;
             }
         }
@@ -63,7 +63,7 @@ namespace AspNetCoreTest.Data.Models
             get
             {
                 var res = (LenX-1)/2;
-                if (res>500) return 500;
+                if (res> MAX_DEEP_RELATIONS_X) return MAX_DEEP_RELATIONS_X;
                 return res;
             }
         }
@@ -294,6 +294,10 @@ namespace AspNetCoreTest.Data.Models
                 {
                     for (var x = 0; x < LenX; x++)
                     {
+                        if (x % 500 == 0)
+                        {
+                            _logger.LogInformation(1111, "NNet _setRelations z={z}, y={y}, x={x}", z, y, x);
+                        }
                         Neurons[z][y][x].SetOutput(_createOutputForNeuron(x, y, z));
                     }
                 }
@@ -311,7 +315,7 @@ namespace AspNetCoreTest.Data.Models
 
             var output = new List<NRelation>();
             // по оси Z распределение норм тут не надо замыкать последний слой на первый
-            var minZ = z - maxDeepRelationsZ; if (minZ < 1) minZ = 1; var maxZ = z + maxDeepRelationsZ; if (maxZ > LenZ - 1) maxZ = LenZ - 1;
+            var minZ = z - MAX_DEEP_RELATIONS_Z; if (minZ < 1) minZ = 1; var maxZ = z + MAX_DEEP_RELATIONS_Z; if (maxZ > LenZ - 1) maxZ = LenZ - 1;
             
             // а вот по икс и игрек хотелось бы замкнуть первые нейроны на последние
             var minY = y - maxDeepRelationsY; /*if (minY < 0) minY = 0;*/ var maxY = y + maxDeepRelationsY;// if (maxY > LenY - 1) maxY = LenY - 1;
@@ -334,7 +338,7 @@ namespace AspNetCoreTest.Data.Models
                         if (x == xxx && yyy == y && z == zz) continue;
 
                         var coords = new NCoords(xxx, yyy, zz);
-                        var o = new NRelation() { Neuron = coords.ToSingle(LenX, LenY), Weight = _rand.NextDouble(MIN_INIT_WEIGHT, MAX_INIT_WEIGHT) };
+                        var o = new NRelation() { Neuron = coords.ToSingle(LenX, LenY), Weight = _rand.NextFloat(MIN_INIT_WEIGHT, MAX_INIT_WEIGHT) };
                         if (NEED_STAT_WEIGHT)
                         {
                             if (MinWeight > o.Weight) MinWeight = o.Weight;
