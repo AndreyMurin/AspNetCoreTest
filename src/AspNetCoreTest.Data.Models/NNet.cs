@@ -384,7 +384,12 @@ namespace AspNetCoreTest.Data.Models
                     Neurons[z].Add(new List<Neuron>());
                     for (var x = 0; x < LenX; x++)
                     {
-                        Neurons[z][y].Add(new Neuron(_rand));
+                        // нормальный режим добавления нейрона
+                        //Neurons[z][y].Add(new Neuron(_rand));
+
+                        // отладка асинхронного чтения записи
+                        _logger.LogInformation(1111, "NNet randomize DEBUG MODE DEBUG MODEDEBUG MODEDEBUG MODEDEBUG MODEDEBUG MODEDEBUG MODEDEBUG MODEDEBUG MODEDEBUG MODEDEBUG MODEDEBUG MODEDEBUG MODEDEBUG MODE");
+                        Neurons[z][y].Add(new Neuron((new NCoords(x,y,z)).ToSingle(LenX, LenY)));
                     }
                 }
             }
@@ -479,7 +484,7 @@ namespace AspNetCoreTest.Data.Models
                 for (var y = 0; y < LenY; y++)
                 {
                     Neurons[z].Add(new List<Neuron>(LenX));
-                    var yy = y; // а вот y меняется пока задача выполняется для 0 а у нас уже y=1 (вот тут будет проблема for (var x = 0; x < LenX; x++) Neurons[z][1].Add(null); а мы еще в моменте создания для y=1 Neurons[z].Add(new List<Neuron>(LenX));)
+                    var yy = y; // а вот Y меняется пока задача выполняется для 0 а у нас уже y=1 (вот тут будет проблема for (var x = 0; x < LenX; x++) Neurons[z][1].Add(null); а мы еще в моменте создания для y=1 Neurons[z].Add(new List<Neuron>(LenX));)
 
                     tasksY[yy] = Task.Run(()=>
                     {

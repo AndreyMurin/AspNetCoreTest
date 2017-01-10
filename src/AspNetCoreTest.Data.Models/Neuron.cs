@@ -32,6 +32,9 @@ namespace AspNetCoreTest.Data.Models
 
     public class Neuron
     {
+        // заряд нейрона при превышении определеного порга происходят разряды (spike)
+        public int State { get; set; }
+
         // запущены таймеры и потоки
         private bool _isStarted = false;
 
@@ -39,9 +42,6 @@ namespace AspNetCoreTest.Data.Models
 
         // нейрон в активном состоянии идут разряды
         public bool isActive { get; set; }
-
-        // заряд нейрона при превышении определеного порга происходят разряды (spike)
-        public int State { get; set; }
 
         // для сериалиции объекта
         public Neuron()
@@ -53,6 +53,14 @@ namespace AspNetCoreTest.Data.Models
         {
             Output = new List<NRelation>();
             State = rand.Next(NNet.MIN_INIT_STATE, NNet.MAX_INIT_STATE);
+        }
+
+        // для отладки асинхронного чтения записи
+        public Neuron(long index)
+        {
+            //float tmp = index;
+            Output = new List<NRelation>();
+            State = (int)index;
         }
 
         public void SetOutput(List<NRelation> output)
