@@ -32,7 +32,7 @@ namespace AspNetCoreTest.Data.Models
         //private readonly ReaderWriterLockSlim LockerSubscribers = new ReaderWriterLockSlim();
         private readonly ConcurrentDictionary<WebSocket, List<NRange>> Subscribers = new ConcurrentDictionary<WebSocket, List<NRange>>();
 
-        public async Task SubscribeClient(HttpContext httpContext)
+        public async Task SubscribeClientAsync(HttpContext httpContext)
         {
             //_logger.LogInformation(1113, "NNetServer SubscribeClient start");
 
@@ -69,8 +69,8 @@ namespace AspNetCoreTest.Data.Models
                             {
                                 // подписка на изменения в сети
                                 case "subscribe":
-                                    if (tmp.ArgsInt.Count < 6) { await SendError(webSocket, "Число аргументов ArgsInt должно быть >= 6", tmp.Action); return; }
-                                    if (tmp.ArgsInt.Count % 6 != 0) { await SendError(webSocket, "Число аргументов ArgsInt должно быть кратно 6", tmp.Action); return; }
+                                    if (tmp.ArgsInt.Count < 6) { await SendErrorAsync(webSocket, "Число аргументов ArgsInt должно быть >= 6", tmp.Action); return; }
+                                    if (tmp.ArgsInt.Count % 6 != 0) { await SendErrorAsync(webSocket, "Число аргументов ArgsInt должно быть кратно 6", tmp.Action); return; }
 
                                     var val = new List<NRange>();
                                     for (var i = 0; i < tmp.ArgsInt.Count; i=i+6)
@@ -102,7 +102,7 @@ namespace AspNetCoreTest.Data.Models
                                     });
 
                                     // сразу отправим полные данные о выбранных нейронах
-                                    await SendNeurons(webSocket, val, tmp.Action);
+                                    await SendNeuronsAsync(webSocket, val, tmp.Action);
 
                                     break;
                                 // полная отписка
@@ -110,11 +110,11 @@ namespace AspNetCoreTest.Data.Models
                                     List<NRange> tmp1;
                                     Subscribers.TryRemove(webSocket, out tmp1);
 
-                                    await SendMessage(webSocket, "OK", tmp.Action);
+                                    await SendMessageAsync(webSocket, "OK", tmp.Action);
                                     break;
                                 // запрос конфигурации сети
                                 case "getnetconfig":
-                                    await SendConfig(webSocket, tmp.Action);
+                                    await SendConfigAsync(webSocket, tmp.Action);
                                     break;
                             }
                             break;
@@ -124,7 +124,7 @@ namespace AspNetCoreTest.Data.Models
                 {
                     //Error = e;
                     //_logger.LogInformation(1113, "NNetServer SubscribeClient error {error}.", e.Message);
-                    await SendError(webSocket, e.Message, null);
+                    await SendErrorAsync(webSocket, e.Message, null);
                 }
                 //_logger.LogInformation(1113, "NNetServer SubscribeClient end action");
             }/**/
@@ -148,12 +148,12 @@ namespace AspNetCoreTest.Data.Models
         private Task createTaskSendNeurons(WebSocket ws, List<NeuronForDraw> neurons, string action) {
             return Task.Run(() =>
             {
-                return SendResponse(ws, JsonConvert.SerializeObject(new WSResponseNeurons { Action = action, Neurons = neurons }, Formatting.Indented));
+                return SendResponseAsync(ws, JsonConvert.SerializeObject(new WSResponseNeurons { Action = action, Neurons = neurons }, Formatting.Indented));
             });
         }
 
         // отправляем данные по выбранным нейронам
-        private async Task SendNeurons(WebSocket ws, List<NRange> ranges, string action)
+        private async Task SendNeuronsAsync(WebSocket ws, List<NRange> ranges, string action)
         {
             //var resp = new WSResponseNeurons { Action = action, Neurons = _getOutputNeurons(ranges) };
             var tasks = new List<Task>();
@@ -203,24 +203,24 @@ namespace AspNetCoreTest.Data.Models
             await SendResponse(ws, JsonConvert.SerializeObject(resp, Formatting.Indented));
         }*/
 
-        private async Task SendConfig(WebSocket ws, string action)
+        private async Task SendConfigAsync(WebSocket ws, string action)
         {
             var resp = new WSResponseConfig { Action = action, LenX = LenX, LenY = LenY, LenZ = LenZ, MinWeight = MinWeight, MaxWeight = MaxWeight, MaxState=MAX_STATE, MinState=MIN_STATE };
-            await SendResponse(ws, JsonConvert.SerializeObject(resp, Formatting.Indented));
+            await SendResponseAsync(ws, JsonConvert.SerializeObject(resp, Formatting.Indented));
         }
 
-        private async Task SendMessage(WebSocket ws, string message, string action)
+        private async Task SendMessageAsync(WebSocket ws, string message, string action)
         {
-            await SendResponse(ws, JsonConvert.SerializeObject(new WSResponse { Action = action, Message = message }, Formatting.Indented));
+            await SendResponseAsync(ws, JsonConvert.SerializeObject(new WSResponse { Action = action, Message = message }, Formatting.Indented));
         }
 
-        private async Task SendError(WebSocket ws, string message, string action)
+        private async Task SendErrorAsync(WebSocket ws, string message, string action)
         {
-            await SendResponse(ws, JsonConvert.SerializeObject(new WSResponse { Action = action, Error = message }, Formatting.Indented));
+            await SendResponseAsync(ws, JsonConvert.SerializeObject(new WSResponse { Action = action, Error = message }, Formatting.Indented));
         }
 
         // отправляем строку клиенту (а в строке JSON)
-        private async Task SendResponse(WebSocket ws, string resp)
+        private async Task SendResponseAsync(WebSocket ws, string resp)
         {
             try
             {

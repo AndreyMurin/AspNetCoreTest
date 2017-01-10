@@ -38,7 +38,7 @@ namespace AspNetCoreTest
                         await Chat.NewClient(httpContext);
                         break;
                     case "/brain-torus":
-                        await _net.SubscribeClient(httpContext);
+                        await _net.SubscribeClientAsync(httpContext);
                         break;
                     default:
                         _logger.LogError(1113, "Websocket path not founded! path = {path}", path);

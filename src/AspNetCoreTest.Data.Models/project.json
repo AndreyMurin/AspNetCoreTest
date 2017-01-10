@@ -13,7 +13,8 @@
     "System.Private.DataContractSerialization": "4.1.1",
     //"System.Runtime.Serialization.Json": "4.0.1",
     "System.Security.Cryptography.Algorithms": "4.2.0",
-    "System.Threading.Thread": "4.0.0"
+    "System.Threading.Thread": "4.0.0",
+    "System.Threading.ThreadPool": "4.0.10"
   },
 
   "frameworks": {

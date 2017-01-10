@@ -358,17 +358,19 @@ namespace AspNetCoreTest.Data.Models
         }
 
 
-        private void startThreads() {
+        private void startThreads()
+        {
             if (!checkNeurons()) return;
             //foreach (var n in Neurons.Where(i => i.isActive))
             foreach (var z in Neurons)
                 foreach (var y in z)
                     foreach (var n in y.Where(i => i.isActive))
                     {
-                Task.Factory.StartNew(()=> {
-                    n.Tick();
-                });/**/
-            }
+                        Task.Factory.StartNew(() =>
+                        {
+                            n.Tick();
+                        });/**/
+                    }
         }
 
         private void randomize()
@@ -385,11 +387,11 @@ namespace AspNetCoreTest.Data.Models
                     for (var x = 0; x < LenX; x++)
                     {
                         // нормальный режим добавления нейрона
-                        //Neurons[z][y].Add(new Neuron(_rand));
+                        Neurons[z][y].Add(new Neuron(_rand));
 
                         // отладка асинхронного чтения записи
-                        _logger.LogInformation(1111, "NNet randomize DEBUG MODE DEBUG MODE DEBUG MODE");
-                        Neurons[z][y].Add(new Neuron((new NCoords(x,y,z)).ToSingle(LenX, LenY)));
+                        //_logger.LogInformation(1111, "NNet randomize DEBUG MODE DEBUG MODE DEBUG MODE");
+                        //Neurons[z][y].Add(new Neuron((new NCoords(x,y,z)).ToSingle(LenX, LenY)));
                     }
                 }
             }
@@ -397,17 +399,17 @@ namespace AspNetCoreTest.Data.Models
 
         #region SAVE
 
-        private async Task _saveNeuronTask(string filename, int x, int y, int z)
+        private async Task _saveNeuronAsync(string filename, int x, int y, int z)
         {
-            _logger.LogInformation(1111, "NNet _saveNeuronTask save {filename} {state}", filename, Neurons[z][y][x].State);
-            Thread.Sleep(_rand.Next(5000, 10000));
+            //_logger.LogInformation(1111, "NNet _saveNeuronTask save {filename} {state} {id}", filename, Neurons[z][y][x].State, Thread.CurrentThread.ManagedThreadId);
+            //Thread.Sleep(_rand.Next(2000, 5000));
             var f = System.IO.File.Create(filename);
             using (var Writer = new System.IO.StreamWriter(f))
                 await Writer.WriteAsync(JsonConvert.SerializeObject(
                                 Neurons[z][y][x]
                                 , Formatting.Indented
                             ));
-            _logger.LogInformation(1111, "NNet _saveNeuronTask saved {filename} {state}", filename, Neurons[z][y][x].State);
+            //_logger.LogInformation(1111, "NNet _saveNeuronTask saved {filename} {state}", filename, Neurons[z][y][x].State);
         }
 
         private void save(bool pack=false)
@@ -418,9 +420,13 @@ namespace AspNetCoreTest.Data.Models
             // удаление старых данных (переименование!) если они есть
             try
             {
-                System.IO.Directory.Move(_filename, DateTime.Now.ToString("s").Replace(":","-") + "." + _filename);
+                System.IO.Directory.Move(_filename, _filename + "." + DateTime.Now.ToString("s").Replace(":", "-"));
             }
-            catch (Exception) { }
+            catch (Exception e)
+            {
+                _logger.LogInformation(1111, "NNet save params {source} -> {dest}", _filename, DateTime.Now.ToString("s").Replace(":", "-") + "." + _filename);
+                _logger.LogInformation(1111, "NNet save error: {e}", e.Message);
+            }
 
             var dir = System.IO.Directory.CreateDirectory(_filename);
             var File = System.IO.File.Create(_filename + "/config.murin");
@@ -446,7 +452,7 @@ namespace AspNetCoreTest.Data.Models
                         Task[] tasksX = new Task[LenX];
                         for (var x = 0; x < LenX; x++)
                         {
-                            tasksX[x] = _saveNeuronTask(_filename + "/" + z + "/" + yy + "/" + x + ".neuron", x, yy, z);
+                            tasksX[x] = _saveNeuronAsync(_filename + "/" + z + "/" + yy + "/" + x + ".neuron", x, yy, z);
                             /*var f = System.IO.File.Create(_filename + "/" + z + "/" + y + "/" + x + ".neuron");
                             using (var Writer = new System.IO.StreamWriter(f))
                             {
@@ -459,9 +465,9 @@ namespace AspNetCoreTest.Data.Models
                         //Task.WaitAll(tasksX);
                         return Task.WhenAll(tasksX);
                     });
-                    _logger.LogInformation(1111, "NNet save end y={y}", y);
+                    //_logger.LogInformation(1111, "NNet save end y={y}", y);
                 }
-                _logger.LogInformation(1111, "NNet save Task.WaitAll(tasksY) {z}",z);
+                //_logger.LogInformation(1111, "NNet save Task.WaitAll(tasksY) {z}",z);
                 Task.WaitAll(tasksY);
             }
 
@@ -476,7 +482,7 @@ namespace AspNetCoreTest.Data.Models
 
         #region LOAD
 
-        private async Task _loadNeuronTask(string filename, int x, int y, int z)
+        private async Task _loadNeuronAsync(string filename, int x, int y, int z)
         {
             //return Task.Run(()=> { });
             //StringBuilder contents = new StringBuilder();
@@ -524,7 +530,7 @@ namespace AspNetCoreTest.Data.Models
                         {
                             /*var n = JsonConvert.DeserializeObject<Neuron>(File.ReadAllText(folder + "/" + z + "/" + y + "/" + x + ".neuron"));
                             Neurons[z][y][x] = n;/**/
-                            tasksX[x] = _loadNeuronTask(folder + "/" + z + "/" + yy + "/" + x + ".neuron", x, yy, z);
+                            tasksX[x] = _loadNeuronAsync(folder + "/" + z + "/" + yy + "/" + x + ".neuron", x, yy, z);
                         }
                         //Task.WaitAll(tasksX);
                         return Task.WhenAll(tasksX);
