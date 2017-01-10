@@ -443,6 +443,23 @@ namespace AspNetCoreTest.Data.Models
 
         }
 
+        private async Task _loadNeuronTask(string filename, int x, int y, int z)
+        {
+            //return Task.Run(()=> { });
+            StringBuilder contents = new StringBuilder();
+            using (StreamReader SourceReader = File.OpenText(filename))
+            {
+                string nextLine;
+
+                while ((nextLine = await SourceReader.ReadLineAsync()) != null)
+                {
+                    contents.Append(nextLine);
+                }
+            }
+            var n = JsonConvert.DeserializeObject<Neuron>(contents.ToString());
+            Neurons[z][y][x] = n;
+        }/**/
+
         private void _loadFrom(string folder)
         {
             var tmp = JsonConvert.DeserializeObject<WSResponseConfig>(File.ReadAllText(folder + "/config.murin"));
@@ -455,16 +472,30 @@ namespace AspNetCoreTest.Data.Models
             Neurons = new List<List<List<Neuron>>>();
             for (var z = 0; z < LenZ; z++)
             {
+                //var zz = z; // индекс z не может изменится пока выполняются задачи так что его не будем в локаль копировать
                 Neurons.Add(new List<List<Neuron>>());
+
+                Task[] tasksY = new Task[LenY];
                 for (var y = 0; y < LenY; y++)
                 {
-                    Neurons[z].Add(new List<Neuron>());
-                    for (var x = 0; x < LenX; x++)
+                    Neurons[z].Add(new List<Neuron>(LenX));
+                    var yy = y; // а вот y меняется пока задача выполняется для 0 а у нас уже y=1 (вот тут будет проблема for (var x = 0; x < LenX; x++) Neurons[z][1].Add(null); а мы еще в моменте создания для y=1 Neurons[z].Add(new List<Neuron>(LenX));)
+
+                    tasksY[yy] = Task.Run(()=>
                     {
-                        var n = JsonConvert.DeserializeObject<Neuron>(File.ReadAllText(folder + "/" + z + "/" + y + "/" + x + ".neuron"));
-                        Neurons[z][y].Add(n);
-                    }
+                        Task[] tasksX = new Task[LenX];
+                        for (var x = 0; x < LenX; x++) Neurons[z][yy].Add(null);
+                        for (var x = 0; x < LenX; x++)
+                        {
+                            /*var n = JsonConvert.DeserializeObject<Neuron>(File.ReadAllText(folder + "/" + z + "/" + y + "/" + x + ".neuron"));
+                            Neurons[z][y][x] = n;/**/
+                            tasksX[x] = _loadNeuronTask(folder + "/" + z + "/" + yy + "/" + x + ".neuron", x, yy, z);
+                        }
+                        //Task.WaitAll(tasksX);
+                        return Task.WhenAll(tasksX);
+                    });
                 }
+                Task.WaitAll(tasksY);
             }
         }
 
