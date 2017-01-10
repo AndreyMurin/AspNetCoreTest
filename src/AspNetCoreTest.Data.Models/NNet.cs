@@ -118,7 +118,7 @@ namespace AspNetCoreTest.Data.Models
             LongTest = 100123123123; // > 100 000 000 000
             _logger = logger;
             _optionsAccessor = optionsAccessor;
-            _filename = _optionsAccessor.Value.FileName;
+            _filename = _optionsAccessor.Value.FileName.TrimEnd(new char[] { '/', ' ' });
             LenX = _optionsAccessor.Value.LenX;
             LenY = _optionsAccessor.Value.LenY;
             LenZ = _optionsAccessor.Value.LenZ;
@@ -133,13 +133,12 @@ namespace AspNetCoreTest.Data.Models
 
             Stop();
 
-            if (_provider.GetFileInfo(_filename).Exists)
+            if (_provider.GetFileInfo(_filename).Exists || _provider.GetFileInfo(_filename + ".zip").Exists)
             {
-                load(); 
+                load();
             }
             else
             {
-
                 randomize();
                 _setRelations();
                 save();
@@ -147,7 +146,7 @@ namespace AspNetCoreTest.Data.Models
 
             //_initStatWeight();
 
-            _setOutputNeurons();
+            //_setOutputNeurons();
             startThreads();
             Start();
         }
@@ -218,7 +217,8 @@ namespace AspNetCoreTest.Data.Models
 
         // устанавливаем у каждого нейрона в Neuron.Output _neuron соответсвующий  Neuron.Neuron (после сохранения, инициализации)
         // довольно медленная операция, но она происходит тока после загрузки и создания
-        private void _setOutputNeurons()
+        // в данный момент не используется
+        /*private void _setOutputNeurons()
         {
             if (!checkNeurons()) return;
             foreach (var z in Neurons)
@@ -236,7 +236,7 @@ namespace AspNetCoreTest.Data.Models
                                 _logger.LogInformation(1111, "NNet::_setOutputNeurons() {exc} \n{Neuron} = ({X},{Y},{Z})", e.Message, o.Neuron, coords.X, coords.Y, coords.Z);
                             }
                         }
-        }
+        }*/
 
         // поиск всех входов для нейрона (пока исключительно для отрисовки)
         // не будем использовать
@@ -304,7 +304,7 @@ namespace AspNetCoreTest.Data.Models
             }
         }
 
-        // создаем выходные связи для нейрона
+        // создаем выходные связи для нейрона (рандомно)
         private List<NRelation> _createOutputForNeuron(int x, int y, int z)
         {
             if (NEED_STAT_WEIGHT)
@@ -392,16 +392,82 @@ namespace AspNetCoreTest.Data.Models
             }
         }
 
-        private void save()
+        private void save(bool pack=false)
         {
             _logger.LogInformation(1111, "NNet save");
             if (!checkNeurons()) return;
-            var File = System.IO.File.Create(_filename);
+
+            // удаление старых данных (переименование!) если они есть
+            try
+            {
+                System.IO.Directory.Move(_filename, DateTime.Now.ToString("s").Replace(":","-") + "." + _filename);
+            }
+            catch (Exception) { }
+
+            var dir = System.IO.Directory.CreateDirectory(_filename);
+            var File = System.IO.File.Create(_filename + "/config.murin");
+            using (var Writer = new System.IO.StreamWriter(File))
+            {
+                Writer.WriteLine(JsonConvert.SerializeObject(
+                    new WSResponseConfig { LenX = LenX, LenY = LenY, LenZ = LenZ, MinWeight = MinWeight, MaxWeight = MaxWeight, MaxState = MAX_STATE, MinState = MIN_STATE }
+                    , Formatting.Indented
+                ));
+            }
+            for (var z = 0; z < LenZ; z++)
+            {
+                System.IO.Directory.CreateDirectory(_filename + "/" + z);
+                for (var y = 0; y < LenY; y++)
+                {
+                    System.IO.Directory.CreateDirectory(_filename + "/" + z + "/" + y);
+                    for (var x = 0; x < LenX; x++)
+                    {
+                        //Neurons[z][y][x].SetOutput(_createOutputForNeuron(x, y, z));
+                        var f = System.IO.File.Create(_filename + "/" + z + "/" + y + "/" + x + ".neuron");
+                        using (var Writer = new System.IO.StreamWriter(f))
+                        {
+                            Writer.WriteLine(JsonConvert.SerializeObject(
+                                Neurons[z][y][x]
+                                , Formatting.Indented
+                            ));
+                        }
+                    }
+                }
+            }
+            /*var File = System.IO.File.Create(_filename);
             using (var Writer = new System.IO.StreamWriter(File))
             {
                 Writer.WriteLine(JsonConvert.SerializeObject(this, Formatting.Indented));
+            }*/
+            if (pack)
+            {
+                // архивируем данные
             }
 
+        }
+
+        private void _loadFrom(string folder)
+        {
+            var tmp = JsonConvert.DeserializeObject<WSResponseConfig>(File.ReadAllText(folder + "/config.murin"));
+            LenX = tmp.LenX;
+            LenY = tmp.LenY;
+            LenZ = tmp.LenZ;
+            MinWeight = tmp.MinWeight;
+            MaxWeight = tmp.MaxWeight;
+
+            Neurons = new List<List<List<Neuron>>>();
+            for (var z = 0; z < LenZ; z++)
+            {
+                Neurons.Add(new List<List<Neuron>>());
+                for (var y = 0; y < LenY; y++)
+                {
+                    Neurons[z].Add(new List<Neuron>());
+                    for (var x = 0; x < LenX; x++)
+                    {
+                        var n = JsonConvert.DeserializeObject<Neuron>(File.ReadAllText(folder + "/" + z + "/" + y + "/" + x + ".neuron"));
+                        Neurons[z][y].Add(n);
+                    }
+                }
+            }
         }
 
         private void load()
@@ -411,8 +477,15 @@ namespace AspNetCoreTest.Data.Models
             // хотя копируются ссылки так что норм
             try
             {
-                
-                var tmp = JsonConvert.DeserializeObject<NNet>(File.ReadAllText(_filename));
+                if (System.IO.File.Exists(_filename))
+                {
+                    _loadFrom(_filename);
+                }
+                else if (System.IO.File.Exists(_filename + ".zip"))
+                {
+
+                }
+                /*var tmp = JsonConvert.DeserializeObject<NNet>(File.ReadAllText(_filename));
                 //_logger.LogInformation(1111, "NNet load !!!");
                 // если Neurons static то присваивания не надо
                 this.Neurons = tmp.Neurons;
