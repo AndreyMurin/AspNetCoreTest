@@ -57,17 +57,18 @@ namespace AspNetCoreTest
             // Uncomment to use SQLite storage
             //services.AddScoped(typeof(IStorage), typeof(AspNetCoreTest.Data.Sqlite.Storage));
 
+            /*
             // -------------------------------------
             var physicalProvider = _hostingEnvironment.ContentRootFileProvider;
             var embeddedProvider = new EmbeddedFileProvider(Assembly.GetEntryAssembly());
             var compositeProvider = new CompositeFileProvider(physicalProvider, embeddedProvider);
-
+            
             // choose one provider to use for the app and register it
             services.AddSingleton<IFileProvider>(physicalProvider);
             //services.AddSingleton<IFileProvider>(embeddedProvider);
             //services.AddSingleton<IFileProvider>(compositeProvider);
             // -------------------------------------
-
+            */
             services.AddSingleton<IRnd, Rnd>();
 
             services.AddSingleton<NNetServer, NNetServer>();

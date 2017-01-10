@@ -16,7 +16,7 @@ namespace AspNetCoreTest.Data.Models
 {
     public class NNetServer : NNet
     {
-        public NNetServer(ILogger<NNet> logger, IOptions<NNetConfig> optionsAccessor, IFileProvider provider, IRnd rand) : base(logger, optionsAccessor, provider, rand)
+        public NNetServer(ILogger<NNet> logger, IOptions<NNetConfig> optionsAccessor, IRnd rand) : base(logger, optionsAccessor, rand)
         {
         }
 

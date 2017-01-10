@@ -10,7 +10,7 @@ namespace AspNetCoreTest.Data.Models
 {
     public class NNetClient : NNet
     {
-        public NNetClient(ILogger<NNet> logger, IOptions<NNetConfig> optionsAccessor, IFileProvider provider, IRnd rand) : base(logger, optionsAccessor, provider, rand)
+        public NNetClient(ILogger<NNet> logger, IOptions<NNetConfig> optionsAccessor, IRnd rand) : base(logger, optionsAccessor, rand)
         {
         }
 

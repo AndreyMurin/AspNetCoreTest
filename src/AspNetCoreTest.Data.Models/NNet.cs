@@ -73,7 +73,6 @@ namespace AspNetCoreTest.Data.Models
         //private readonly ILogger<NNet> _logger;
 
         protected readonly IOptions<NNetConfig> _optionsAccessor;
-        protected readonly IFileProvider _provider;
         protected readonly IRnd _rand;
 
         private string _filename;
@@ -112,7 +111,7 @@ namespace AspNetCoreTest.Data.Models
         // пустой конструктор для сериалиции
         public NNet() { }
 
-        public NNet (ILogger<NNet> logger, IOptions<NNetConfig> optionsAccessor, IFileProvider provider, IRnd rand)
+        public NNet (ILogger<NNet> logger, IOptions<NNetConfig> optionsAccessor, IRnd rand)
         {
             // тестируем сериализацию в лонг
             LongTest = 100123123123; // > 100 000 000 000
@@ -122,7 +121,6 @@ namespace AspNetCoreTest.Data.Models
             LenX = _optionsAccessor.Value.LenX;
             LenY = _optionsAccessor.Value.LenY;
             LenZ = _optionsAccessor.Value.LenZ;
-            _provider = provider;
             _rand = rand;
 
             if (LenZ < 3) LenZ = 3; // 3 слоя минимум 1 входной последний выход
@@ -133,7 +131,7 @@ namespace AspNetCoreTest.Data.Models
 
             Stop();
 
-            if (_provider.GetFileInfo(_filename).Exists || _provider.GetFileInfo(_filename + ".zip").Exists)
+            if (System.IO.Directory.Exists(_filename) || System.IO.File.Exists(_filename + ".zip"))
             {
                 load();
             }
@@ -477,7 +475,7 @@ namespace AspNetCoreTest.Data.Models
             // хотя копируются ссылки так что норм
             try
             {
-                if (System.IO.File.Exists(_filename))
+                if (System.IO.Directory.Exists(_filename))
                 {
                     _loadFrom(_filename);
                 }
