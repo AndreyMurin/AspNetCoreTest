@@ -388,11 +388,26 @@ namespace AspNetCoreTest.Data.Models
                         //Neurons[z][y].Add(new Neuron(_rand));
 
                         // отладка асинхронного чтения записи
-                        _logger.LogInformation(1111, "NNet randomize DEBUG MODE DEBUG MODEDEBUG MODEDEBUG MODEDEBUG MODEDEBUG MODEDEBUG MODEDEBUG MODEDEBUG MODEDEBUG MODEDEBUG MODEDEBUG MODEDEBUG MODEDEBUG MODE");
+                        _logger.LogInformation(1111, "NNet randomize DEBUG MODE DEBUG MODE DEBUG MODE");
                         Neurons[z][y].Add(new Neuron((new NCoords(x,y,z)).ToSingle(LenX, LenY)));
                     }
                 }
             }
+        }
+
+        #region SAVE
+
+        private async Task _saveNeuronTask(string filename, int x, int y, int z)
+        {
+            _logger.LogInformation(1111, "NNet _saveNeuronTask save {filename} {state}", filename, Neurons[z][y][x].State);
+            Thread.Sleep(_rand.Next(5000, 10000));
+            var f = System.IO.File.Create(filename);
+            using (var Writer = new System.IO.StreamWriter(f))
+                await Writer.WriteAsync(JsonConvert.SerializeObject(
+                                Neurons[z][y][x]
+                                , Formatting.Indented
+                            ));
+            _logger.LogInformation(1111, "NNet _saveNeuronTask saved {filename} {state}", filename, Neurons[z][y][x].State);
         }
 
         private void save(bool pack=false)
@@ -419,28 +434,37 @@ namespace AspNetCoreTest.Data.Models
             for (var z = 0; z < LenZ; z++)
             {
                 System.IO.Directory.CreateDirectory(_filename + "/" + z);
+
+                Task[] tasksY = new Task[LenY];
                 for (var y = 0; y < LenY; y++)
                 {
                     System.IO.Directory.CreateDirectory(_filename + "/" + z + "/" + y);
-                    for (var x = 0; x < LenX; x++)
+                    var yy = y;
+
+                    tasksY[yy] = Task.Run(() =>
                     {
-                        //Neurons[z][y][x].SetOutput(_createOutputForNeuron(x, y, z));
-                        var f = System.IO.File.Create(_filename + "/" + z + "/" + y + "/" + x + ".neuron");
-                        using (var Writer = new System.IO.StreamWriter(f))
+                        Task[] tasksX = new Task[LenX];
+                        for (var x = 0; x < LenX; x++)
                         {
-                            Writer.WriteLine(JsonConvert.SerializeObject(
-                                Neurons[z][y][x]
-                                , Formatting.Indented
-                            ));
+                            tasksX[x] = _saveNeuronTask(_filename + "/" + z + "/" + yy + "/" + x + ".neuron", x, yy, z);
+                            /*var f = System.IO.File.Create(_filename + "/" + z + "/" + y + "/" + x + ".neuron");
+                            using (var Writer = new System.IO.StreamWriter(f))
+                            {
+                                Writer.WriteLine(JsonConvert.SerializeObject(
+                                    Neurons[z][y][x]
+                                    , Formatting.Indented
+                                ));
+                            }*/
                         }
-                    }
+                        //Task.WaitAll(tasksX);
+                        return Task.WhenAll(tasksX);
+                    });
+                    _logger.LogInformation(1111, "NNet save end y={y}", y);
                 }
+                _logger.LogInformation(1111, "NNet save Task.WaitAll(tasksY) {z}",z);
+                Task.WaitAll(tasksY);
             }
-            /*var File = System.IO.File.Create(_filename);
-            using (var Writer = new System.IO.StreamWriter(File))
-            {
-                Writer.WriteLine(JsonConvert.SerializeObject(this, Formatting.Indented));
-            }*/
+
             if (pack)
             {
                 // архивируем данные
@@ -448,21 +472,27 @@ namespace AspNetCoreTest.Data.Models
 
         }
 
+        #endregion
+
+        #region LOAD
+
         private async Task _loadNeuronTask(string filename, int x, int y, int z)
         {
             //return Task.Run(()=> { });
-            StringBuilder contents = new StringBuilder();
+            //StringBuilder contents = new StringBuilder();
             using (StreamReader SourceReader = File.OpenText(filename))
             {
-                string nextLine;
-
+                /*string nextLine;
                 while ((nextLine = await SourceReader.ReadLineAsync()) != null)
                 {
                     contents.Append(nextLine);
-                }
+                }*/
+                //var res = await SourceReader.ReadToEndAsync();
+                Neurons[z][y][x] = JsonConvert.DeserializeObject<Neuron>(await SourceReader.ReadToEndAsync());
             }
-            var n = JsonConvert.DeserializeObject<Neuron>(contents.ToString());
-            Neurons[z][y][x] = n;
+
+            //var n = JsonConvert.DeserializeObject<Neuron>(contents.ToString());
+            //Neurons[z][y][x] = n;
         }/**/
 
         private void _loadFrom(string folder)
@@ -542,31 +572,7 @@ namespace AspNetCoreTest.Data.Models
             }*/
         }
 
-        /*public async Task<string> GetFirstCharactersCountAsync(string url, int count)
-        {
-            // Execution is synchronous here
-            var client = new System.Net.Http.HttpClient();
-
-            // Execution of GetFirstCharactersCountAsync() is yielded to the caller here
-            // GetStringAsync returns a Task<string>, which is *awaited*
-            var page = await client.GetStringAsync("http://www.dotnetfoundation.org");
-
-            // Execution resumes when the client.GetStringAsync task completes,
-            // becoming synchronous again.
-
-            if (count > page.Length)
-            {
-                return page;
-            }
-            else
-            {
-                return page.Substring(0, count);
-            }
-        }/**/
-
-        //public virtual async Task SubscribeClient(HttpContext httpContext)
-        //{ }
-
+        #endregion
 
         #region IDisposable Support
         private bool disposedValue = false; // Для определения избыточных вызовов
