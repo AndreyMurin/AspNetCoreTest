@@ -424,8 +424,8 @@ namespace AspNetCoreTest.Data.Models
             }
             catch (Exception e)
             {
-                _logger.LogInformation(1111, "NNet save params {source} -> {dest}", _filename, DateTime.Now.ToString("s").Replace(":", "-") + "." + _filename);
-                _logger.LogInformation(1111, "NNet save error: {e}", e.Message);
+                _logger.LogError(1111, "NNet save params {source} -> {dest}", _filename, _filename + "." + DateTime.Now.ToString("s").Replace(":", "-"));
+                _logger.LogError(1111, "NNet save error: {e}", e);
             }
 
             var dir = System.IO.Directory.CreateDirectory(_filename);
