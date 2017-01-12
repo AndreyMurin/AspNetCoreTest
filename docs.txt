@@ -21,3 +21,8 @@ https://threejs.org/
 
 Task-based Asynchronous Pattern (TAP)
 https://msdn.microsoft.com/library/hh873175.aspx
+
+project.json формат
+https://docs.microsoft.com/en-us/dotnet/articles/core/tools/project-json
+идентификаторы систем
+https://docs.microsoft.com/en-us/dotnet/articles/core/rid-catalog
