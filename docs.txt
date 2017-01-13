@@ -26,3 +26,6 @@ project.json формат
 https://docs.microsoft.com/en-us/dotnet/articles/core/tools/project-json
 идентификаторы систем
 https://docs.microsoft.com/en-us/dotnet/articles/core/rid-catalog
+
+Bundler & Minifier wiki!
+https://github.com/madskristensen/BundlerMinifier/wiki

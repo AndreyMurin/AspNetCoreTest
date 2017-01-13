@@ -373,6 +373,7 @@ namespace AspNetCoreTest.Data.Models
                     }
         }
 
+        // создание нейронов
         private void randomize()
         {
             _logger.LogInformation(1111, "NNet randomize");
