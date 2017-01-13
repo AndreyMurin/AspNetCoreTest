@@ -23,6 +23,9 @@ namespace AspNetCoreTest.Data.Models
         public const float MIN_INIT_WEIGHT = -0.5F;
         public const float MAX_INIT_WEIGHT = 0.5F;
 
+        // вкс связи для бузусловного рефлекса
+        public const float UNCONDITIONED_REFLEX_WEIGHT = 1;
+
         // макс и мин для состояний нейронов
         // пока не решил будут ли отрицательные состояния нейрнов в купе со связями или ограничимся тока отрицательными связями
         public const int MIN_INIT_STATE = -50;
@@ -199,14 +202,14 @@ namespace AspNetCoreTest.Data.Models
                 {
                     if (output.Neuron == destN) // связь нашли усилим ее до макс и свалим
                     {
-                        output.Weight = MAX_INIT_WEIGHT;
+                        output.Weight = UNCONDITIONED_REFLEX_WEIGHT;
                         founded = true;
                         break;
                     }
                 }
                 if (!founded)
                 {
-                    var o = new NRelation() { Neuron = destN, Weight = MAX_INIT_WEIGHT };
+                    var o = new NRelation() { Neuron = destN, Weight = UNCONDITIONED_REFLEX_WEIGHT };
                     o.SetNeuron(Neurons[path[i].Z][path[i].Y][path[i].X]);
                     beginN.Output.Add(o);
                 }
