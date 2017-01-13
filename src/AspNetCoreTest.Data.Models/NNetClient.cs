@@ -14,9 +14,9 @@ namespace AspNetCoreTest.Data.Models
         {
         }
 
-        public async Task Connect(string href)
+        public Task Connect(string href)
         {
-
+            return Task.CompletedTask;
         }
 
     }

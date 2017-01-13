@@ -145,7 +145,7 @@ namespace AspNetCoreTest.Data.Models
             //_logger.LogInformation(1113, "NNetServer SubscribeClient end");
         }
 
-        private Task createTaskSendNeurons(WebSocket ws, List<NeuronForDraw> neurons, string action) {
+        private Task SendNeuronsAsync(WebSocket ws, List<NeuronForDraw> neurons, string action) {
             return Task.Run(() =>
             {
                 return SendResponseAsync(ws, JsonConvert.SerializeObject(new WSResponseNeurons { Action = action, Neurons = neurons }, Formatting.Indented));
@@ -153,7 +153,7 @@ namespace AspNetCoreTest.Data.Models
         }
 
         // отправляем данные по выбранным нейронам
-        private async Task SendNeuronsAsync(WebSocket ws, List<NRange> ranges, string action)
+        private Task SendNeuronsAsync(WebSocket ws, List<NRange> ranges, string action)
         {
             //var resp = new WSResponseNeurons { Action = action, Neurons = _getOutputNeurons(ranges) };
             var tasks = new List<Task>();
@@ -180,7 +180,7 @@ namespace AspNetCoreTest.Data.Models
 
                             if (neurons.Count >= MaxNeuronsForSend)
                             {
-                                tasks.Add(createTaskSendNeurons(ws, neurons, action));
+                                tasks.Add(SendNeuronsAsync(ws, neurons, action));
                                 neurons = new List<NeuronForDraw>();
                             }
                         }
@@ -189,10 +189,10 @@ namespace AspNetCoreTest.Data.Models
             }
             if (neurons.Any())
             {
-                tasks.Add(createTaskSendNeurons(ws, neurons, action));
+                tasks.Add(SendNeuronsAsync(ws, neurons, action));
             }
 
-            await Task.WhenAll(tasks);
+            return Task.WhenAll(tasks);
             //await SendResponse(ws, JsonConvert.SerializeObject(resp, Formatting.Indented));
         }
 
@@ -203,24 +203,24 @@ namespace AspNetCoreTest.Data.Models
             await SendResponse(ws, JsonConvert.SerializeObject(resp, Formatting.Indented));
         }*/
 
-        private async Task SendConfigAsync(WebSocket ws, string action)
+        private Task SendConfigAsync(WebSocket ws, string action)
         {
             var resp = new WSResponseConfig { Action = action, LenX = LenX, LenY = LenY, LenZ = LenZ, MinWeight = MinWeight, MaxWeight = MaxWeight, MaxState=MAX_STATE, MinState=MIN_STATE };
-            await SendResponseAsync(ws, JsonConvert.SerializeObject(resp, Formatting.Indented));
+            return SendResponseAsync(ws, JsonConvert.SerializeObject(resp, Formatting.Indented));
         }
 
-        private async Task SendMessageAsync(WebSocket ws, string message, string action)
+        private Task SendMessageAsync(WebSocket ws, string message, string action)
         {
-            await SendResponseAsync(ws, JsonConvert.SerializeObject(new WSResponse { Action = action, Message = message }, Formatting.Indented));
+            return SendResponseAsync(ws, JsonConvert.SerializeObject(new WSResponse { Action = action, Message = message }, Formatting.Indented));
         }
 
-        private async Task SendErrorAsync(WebSocket ws, string message, string action)
+        private Task SendErrorAsync(WebSocket ws, string message, string action)
         {
-            await SendResponseAsync(ws, JsonConvert.SerializeObject(new WSResponse { Action = action, Error = message }, Formatting.Indented));
+            return SendResponseAsync(ws, JsonConvert.SerializeObject(new WSResponse { Action = action, Error = message }, Formatting.Indented));
         }
 
         // отправляем строку клиенту (а в строке JSON)
-        private async Task SendResponseAsync(WebSocket ws, string resp)
+        private Task SendResponseAsync(WebSocket ws, string resp)
         {
             try
             {
@@ -230,12 +230,13 @@ namespace AspNetCoreTest.Data.Models
                 //var type = WebSocketMessageType.Text;
                 //var data = Encoding.UTF8.GetBytes(resp);
                 //var buffer = new ArraySegment<Byte>(Encoding.UTF8.GetBytes(resp));
-                await ws.SendAsync(new ArraySegment<Byte>(Encoding.UTF8.GetBytes(resp)), WebSocketMessageType.Text, true, CancellationToken.None);
+                return ws.SendAsync(new ArraySegment<Byte>(Encoding.UTF8.GetBytes(resp)), WebSocketMessageType.Text, true, CancellationToken.None);
             }
             catch (Exception)
             {
                 // подавляем все ошибки, тут сокет может быть уже закрыт или еще что, нам не важно, хотя! если отвалился расчетный модуль, то кабздец ... 
                 // а в расчетный модуль отправляем ответ в отдельной функции!
+                return Task.CompletedTask;
             }
         }
         #endregion

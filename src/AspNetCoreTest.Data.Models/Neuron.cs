@@ -68,6 +68,10 @@ namespace AspNetCoreTest.Data.Models
             Output = output;
         }
 
+        public void IncState(int state)
+        {
+        }
+
         public void Tick()
         {
             var tid = Thread.CurrentThread.ManagedThreadId;

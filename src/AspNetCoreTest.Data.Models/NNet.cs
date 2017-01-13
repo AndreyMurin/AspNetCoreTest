@@ -179,9 +179,19 @@ namespace AspNetCoreTest.Data.Models
         }
 
         // активация входов (за раз сразу несколько)
-        public void SetInputs(Dictionary<NCoords, int> inputs)
+        public Task SetInputsAsync(Dictionary<NCoords, int> inputs)
         {
-
+            var tasks = new List<Task>();
+            foreach (var inp in inputs)
+            {
+                var coord = inp.Key;
+                var state = inp.Value;
+                tasks.Add(Task.Run(() =>
+                {
+                    Neurons[coord.Z][coord.Y][coord.X].IncState(state);
+                }));
+            }
+            return Task.WhenAll(tasks);
         }
 
         // установка безусловного рефлекса, будем проводить тупо по прямой от начальной точки до конечной (ставим макс вес если связи нет то создадим ее)
