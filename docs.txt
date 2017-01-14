@@ -10,6 +10,9 @@ https://docs.microsoft.com/ru-ru/dotnet/articles/core/testing/
 Подробный обзор асинхронного программирования
 https://docs.microsoft.com/ru-ru/dotnet/articles/standard/async-in-depth
 
+потокобезопасные коллекции (ConcurrentDictionary)
+https://docs.microsoft.com/ru-ru/dotnet/articles/standard/collections/threadsafe/how-to-add-and-remove-items
+
 документация на NLog
 http://nlog-project.org/
 https://github.com/NLog/NLog/wiki/Tutorial

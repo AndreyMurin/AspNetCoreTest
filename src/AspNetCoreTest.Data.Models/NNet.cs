@@ -112,10 +112,11 @@ namespace AspNetCoreTest.Data.Models
         public static int Threads = 0;
 
         // пустой конструктор для сериалиции
-        public NNet() { }
+        //public NNet() { }
 
         public NNet (ILogger<NNet> logger, IOptions<NNetConfig> optionsAccessor, IRnd rand)
         {
+            Neuron.Net = this;
             // тестируем сериализацию в лонг
             LongTest = 100123123123; // > 100 000 000 000
             _logger = logger;
@@ -188,7 +189,7 @@ namespace AspNetCoreTest.Data.Models
                 var state = inp.Value;
                 tasks.Add(Task.Run(() =>
                 {
-                    Neurons[coord.Z][coord.Y][coord.X].IncState(state);
+                    Neurons[coord.Z][coord.Y][coord.X].IncStateAsync(state);
                 }));
             }
             return Task.WhenAll(tasks);
@@ -374,6 +375,7 @@ namespace AspNetCoreTest.Data.Models
         private void startThreads()
         {
             if (!checkNeurons()) return;
+            /*
             //foreach (var n in Neurons.Where(i => i.isActive))
             foreach (var z in Neurons)
                 foreach (var y in z)
@@ -382,8 +384,9 @@ namespace AspNetCoreTest.Data.Models
                         Task.Factory.StartNew(() =>
                         {
                             n.Tick();
-                        });/**/
+                        });
                     }
+            /**/
         }
 
         // создание нейронов
