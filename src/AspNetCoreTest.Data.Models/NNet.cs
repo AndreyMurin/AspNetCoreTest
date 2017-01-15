@@ -12,6 +12,7 @@ using Newtonsoft.Json;
 using Microsoft.AspNetCore.Http;
 using System.Net.WebSockets;
 using System.Text;
+using System.Collections.Concurrent;
 
 namespace AspNetCoreTest.Data.Models
 {
@@ -91,6 +92,9 @@ namespace AspNetCoreTest.Data.Models
         //[JsonObjectAttribute]
         public List<List<List<Neuron>>> Neurons { get; set; }
 
+        // очередь активированных нейронов
+        public ConcurrentQueue<Neuron> Queue;
+
         // тестируем сериализацию в лонг
         public long LongTest { get; set; }
 
@@ -107,7 +111,7 @@ namespace AspNetCoreTest.Data.Models
         //private long _size { get { return LenX * LenY * LenZ; }  }
 
         // даже не знаю как удобнее через статик или каждому нейрону сделать ссылку на сеть
-        public static long isStarted = 0;
+        public static int isStarted = 0;
         // число одновременно запущеннных задач (активных нейронов, чтоб оперативно тормозить)
         public static int Threads = 0;
 
@@ -163,12 +167,41 @@ namespace AspNetCoreTest.Data.Models
             return true;
         }
 
+        // рабочий цикл сети. все потоки нейронов стартуем строго отсюда
+        private Task _work()
+        {
+            if (0 == Interlocked.CompareExchange(ref isStarted, 1, 0))
+            {
+                return Task.Run(() =>
+                {
+                    while (isStarted == 1)
+                    {
+                        Neuron n;
+                        if (Queue.TryDequeue(out n))
+                        {
+                            // надо как то организовать теперь управление запущенными задачами
+                            // в принципе мы можем следить за NNet.Threads там как раз счетчик запущенных потоков именно нейронов
+                            var task = n.SpikeAsync();
+                        }
+                        else
+                        {
+                            // засыпать или нет?
+                            Thread.Sleep(10);
+                        }
+                    }
+                    // пока тока так можно гарантирвоать окончание работы всех нейронов
+                    while (Threads > 0) { Thread.Sleep(10); }
+                });
+            }
+            return Task.CompletedTask;
+        }
+
         // запускаем сеть в работу (потоки обработки нейронов не затрагиваются)
         public void Start()
         {
             // присвоение без блокировки
-            Interlocked.Exchange(ref isStarted, 1);
-            //isStarted = 1;
+            //Interlocked.Exchange(ref isStarted, 1);
+            _work().Wait();
         }
 
         // ставим сеть на паузу (потоки обработки нейронов не затрагиваются)
@@ -180,19 +213,19 @@ namespace AspNetCoreTest.Data.Models
         }
 
         // активация входов (за раз сразу несколько)
-        public Task SetInputsAsync(Dictionary<NCoords, int> inputs)
+        public void SetInputsAsync(Dictionary<NCoords, int> inputs)
         {
             var tasks = new List<Task>();
             foreach (var inp in inputs)
             {
                 var coord = inp.Key;
                 var state = inp.Value;
-                tasks.Add(Task.Run(() =>
-                {
-                    Neurons[coord.Z][coord.Y][coord.X].IncStateAsync(state);
-                }));
+                //tasks.Add(Task.Run(() =>
+                //{
+                    Neurons[coord.Z][coord.Y][coord.X].IncState(state);
+                //}));
             }
-            return Task.WhenAll(tasks);
+            //return Task.WhenAll(tasks);
         }
 
         // установка безусловного рефлекса, будем проводить тупо по прямой от начальной точки до конечной (ставим макс вес если связи нет то создадим ее)
