@@ -172,7 +172,8 @@ namespace AspNetCoreTest.Data.Models
         {
             if (0 == Interlocked.CompareExchange(ref isStarted, 1, 0))
             {
-                return Task.Run(() =>
+                // сохраним задачу чтобы ждать ее завершения при остановке
+                _workingTask = Task.Run(() =>
                 {
                     while (isStarted == 1)
                     {
@@ -185,23 +186,25 @@ namespace AspNetCoreTest.Data.Models
                         }
                         else
                         {
-                            // засыпать или нет?
-                            Thread.Sleep(10);
+                            // засыпать или нет? стопарнем на милисекунду, чтобы не сильно нагружать процессор пока нет новых заданий
+                            Thread.Sleep(1);
                         }
                     }
                     // пока тока так можно гарантирвоать окончание работы всех нейронов
                     while (Threads > 0) { Thread.Sleep(10); }
                 });
+                return _workingTask;
             }
             return Task.CompletedTask;
         }
 
+        private Task _workingTask = Task.CompletedTask;
         // запускаем сеть в работу (потоки обработки нейронов не затрагиваются)
         public void Start()
         {
             // присвоение без блокировки
             //Interlocked.Exchange(ref isStarted, 1);
-            _work().Wait();
+            _work();
         }
 
         // ставим сеть на паузу (потоки обработки нейронов не затрагиваются)
@@ -210,10 +213,11 @@ namespace AspNetCoreTest.Data.Models
             // присвоение без блокировки
             Interlocked.Exchange(ref isStarted, 0);
             //isStarted = 0;
+            _workingTask.Wait();
         }
 
         // активация входов (за раз сразу несколько)
-        public void SetInputsAsync(Dictionary<NCoords, int> inputs)
+        public void SetInputs(Dictionary<NCoords, int> inputs)
         {
             var tasks = new List<Task>();
             foreach (var inp in inputs)
@@ -639,6 +643,8 @@ namespace AspNetCoreTest.Data.Models
             {
                 if (disposing)
                 {
+                    // обязательно стопарнуть сеть!
+                    Stop();
                     // TODO: освободить управляемое состояние (управляемые объекты).
                     save();
                 }

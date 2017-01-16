@@ -77,6 +77,19 @@ namespace AspNetCoreTest.Data.Models
             Output = output;
         }
 
+        // функция уменьшающая состояние нейрона при разряде
+        private void _decreaseState()
+        {
+            // пока по тупому 
+            var newState = Interlocked.Add(ref _state, -100);
+        }
+
+        // проверка состояния нйерона активировался или нет
+        private bool _checkState()
+        {
+            return ((_state > 0 && _state > NNet.MAX_STATE) || (_state < 0 && _state < NNet.MIN_STATE));
+        }
+
         // в этой функции мы всегда! должны быть тока одним потоком. здесь мы программируем и выполняем цепочки разрядов с затуханием силы и с определенной частотой
         public Task SpikeAsync()
         {
@@ -87,37 +100,42 @@ namespace AspNetCoreTest.Data.Models
                 return Task.Run(() =>
                 {
                     Interlocked.Increment(ref NNet.Threads);
-
-                    while ((_state > 0 && _state > NNet.MAX_STATE) || (_state < 0 && _state < NNet.MIN_STATE))
+                    try
                     {
-                        foreach (var o in Output)
+                        while (_checkState())
                         {
-                            var coord = new NCoords(o.Neuron, Net.LenX, Net.LenY, Net.LenZ);
-                            var state = (int)(_state * o.Weight);
+                            // пропускаем ток
+                            foreach (var o in Output)
+                            {
+                                var coord = new NCoords(o.Neuron, Net.LenX, Net.LenY, Net.LenZ);
+                                var state = (int)(_state * o.Weight);
 
-                            Net.Neurons[coord.Z][coord.Y][coord.X].IncState(state);
+                                Net.Neurons[coord.Z][coord.Y][coord.X].IncState(state);
+                            }
+                            
+                            // уменьшаем свое состояние
+                            _decreaseState();
+
+                            // не важно когда мы выйдем до засыпания или после эта инфа потеряется при остановке
+                            if (NNet.isStarted == 0) break;// сеть остановлена выходим
+
+                            if (_checkState())
+                            {
+                                Thread.Sleep(SpikePeriod);
+                            }
+
+                            if (NNet.isStarted == 0) break;// сеть остановлена выходим
                         }
 
-                        // пока по тупому 
-                        var newState = Interlocked.Add(ref _state, -100);
-
-                        // не важно когда мы выйдем до засыпания или после эта инфа потеряется при остановке
-                        if (NNet.isStarted == 0) break;// сеть остановлена выходим
-
-                        if ((_state > 0 && _state > NNet.MAX_STATE) || (_state < 0 && _state < NNet.MIN_STATE))
-                        {
-                            Thread.Sleep(SpikePeriod);
-                        }
-                        
-                        if (NNet.isStarted == 0) break;// сеть остановлена выходим
+                        IsActive = 0;
                     }
+                    finally // при любом раскладе уменьшить число потоков иначе ждать при остановке будем вечно
+                    {
+                        // обязательно освобождаем состояние
+                        Interlocked.Exchange(ref _isStarted, 0);
 
-                    IsActive = 0;
-
-                    // обязательно освобождаем состояние
-                    Interlocked.Exchange(ref _isStarted, 0);
-
-                    Interlocked.Decrement(ref NNet.Threads);
+                        Interlocked.Decrement(ref NNet.Threads);
+                    }
                 });
             }
             // мы уже запущены
@@ -137,7 +155,7 @@ namespace AspNetCoreTest.Data.Models
 
             // в этом месте значение _state может увеличится другим потоком, но нам как бы пофиг. либо этот либо тот процесс получат в newState значение выше порога и запустят разряд
 
-            if ((newState > 0 && newState > NNet.MAX_STATE) || (newState < 0 && newState < NNet.MIN_STATE))
+            if (_checkState())
             {
                 // просто метим как активный
                 IsActive = 1;
