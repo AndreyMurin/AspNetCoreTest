@@ -82,7 +82,7 @@ namespace AspNetCoreTest
 
             loggerFactory.AddNLog();
             //needed for non-NETSTANDARD platforms: configure nlog.config in your project root
-            env.ConfigureNLog("nlog.config");
+            //env.ConfigureNLog("nlog.config");
 
             if (env.IsDevelopment())
             {
