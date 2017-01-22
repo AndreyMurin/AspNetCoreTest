@@ -8,6 +8,17 @@ using Newtonsoft.Json;
 
 namespace AspNetCoreTest.Data.Models
 {
+    public class SendActivity
+    {
+        public NCoords Coords;
+        public int State;
+    }
+    public class QueueNeuron
+    {
+        public Neuron Neuron;
+        public NCoords Coords;
+    }
+
     // 32+64=96 (12 байт)
     public class NRelation
     {
@@ -42,8 +53,16 @@ namespace AspNetCoreTest.Data.Models
 
         public List<NRelation> Output { get; set; }
 
-        // время между разрядами нйерона
-        private int SpikePeriod { get; set; }
+        // время между разрядами нейрона
+        public int SpikePeriod { get; set; }
+
+        // индекс нейрона. нужен при сохранении(загрузке) очереди в(из) файла (доп нагрузка на память но всего лишь 8 гигов на милиард нейронов)
+        // при загрузке если _isActive то сразу херчаим в очередь (так как у нас не все активные нейроны в очереди!!!)
+        //public long Index { get; set; }
+
+        // время последней активации нейрона (для алгоритма обучения) вычисление потери заряда должно по идее происходить с момента последнего изменения заряда а не разряда
+        // это параметр надо перевычислять при каждом считывании сети из файла 
+        public DateTime LastActive;
 
         // нейрон в активном состоянии идут разряды
         private int _isActive;// { get; set; }
@@ -57,20 +76,21 @@ namespace AspNetCoreTest.Data.Models
 
         public static NNet Net;
 
-        public Neuron(IRnd rand)
+        public Neuron(IRnd rand, long index)
         {
+            //Index = index;
             Output = new List<NRelation>();
             State = rand.Next(NNet.MIN_INIT_STATE, NNet.MAX_INIT_STATE);
             SpikePeriod = rand.Next(10, 1000);
         }
 
         // для отладки асинхронного чтения записи
-        public Neuron(long index)
+        /*public Neuron(long index)
         {
             //float tmp = index;
             Output = new List<NRelation>();
             State = (int)index;
-        }
+        }*/
 
         public void SetOutput(List<NRelation> output)
         {
@@ -91,7 +111,7 @@ namespace AspNetCoreTest.Data.Models
         }
 
         // в этой функции мы всегда! должны быть тока одним потоком. здесь мы программируем и выполняем цепочки разрядов с затуханием силы и с определенной частотой
-        public Task SpikeAsync()
+        public Task SpikeAsync(int x, int y, int z)
         {
             // нейрон активировался. НО он может быть уже активирован другим процессом. надо как-то без блокировки проверить
             // CompareExchange возвращает старое значение
@@ -102,15 +122,18 @@ namespace AspNetCoreTest.Data.Models
                     Interlocked.Increment(ref NNet.Threads);
                     try
                     {
-                        while (_checkState())
+                        while (_checkState() && NNet.isStarted == 0)
                         {
+                            Net.SendActiveQueue.Enqueue(new SendActivity { Coords = new NCoords(x, y, z), State = _state });
+                            LastActive = DateTime.Now;
+
                             // пропускаем ток
                             foreach (var o in Output)
                             {
                                 var coord = new NCoords(o.Neuron, Net.LenX, Net.LenY, Net.LenZ);
                                 var state = (int)(_state * o.Weight);
 
-                                Net.Neurons[coord.Z][coord.Y][coord.X].IncState(state);
+                                Net.Neurons[coord.Z][coord.Y][coord.X].IncState(state, coord);
                             }
                             
                             // уменьшаем свое состояние
@@ -125,6 +148,9 @@ namespace AspNetCoreTest.Data.Models
                             }
 
                             if (NNet.isStarted == 0) break;// сеть остановлена выходим
+                            
+                            // в теории задача уже должна быть выполнена и ждать ее мы нах не будем, если что нам пофигу ушли данные или нет
+                            //Task.WaitAll(t);
                         }
 
                         IsActive = 0;
@@ -144,7 +170,7 @@ namespace AspNetCoreTest.Data.Models
 
         // увеличиваем состояние нейрона и запускаем разряды
         // не делать async Task! так как в этом случае мы тупо встанем в зависон
-        public void IncState(int state)
+        public void IncState(int state, NCoords coords)
         {
             //return Task.Run(() =>
             //{
@@ -161,7 +187,7 @@ namespace AspNetCoreTest.Data.Models
                 IsActive = 1;
 
                 // надо где то прописать что появился активный нейрон (пофигу елси 1 нейрон засунем в очередь несколько раз на том конце разберемся)
-                Net.Queue.Enqueue(this);
+                Net.Queue.Enqueue(new QueueNeuron { Neuron=this, Coords=coords });
             }
 
             //Interlocked.Decrement(ref NNet.Threads);

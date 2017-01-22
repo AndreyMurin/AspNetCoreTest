@@ -69,6 +69,16 @@ namespace AspNetCoreTest.Data.Models
         public int MaxX;// { get; set; }
         public int MaxY;// { get; set; }
         public int MaxZ;// { get; set; }
+
+        public bool Test(NCoords coords)
+        {
+            if (
+                    MinX <= coords.X && coords.X <= MaxX 
+                &&  MinY <= coords.Y && coords.Y <= MaxY
+                &&  MinZ <= coords.Z && coords.Z <= MaxZ
+                ) return true;
+            return false;
+        }
         
     }
 }

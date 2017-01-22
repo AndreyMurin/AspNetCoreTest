@@ -152,6 +152,9 @@
                         case 'subscribe':
                             drawCont.btDraw( 'setNeurons', answer );
                             break;
+                        case 'activities':
+                            drawCont.btDraw( 'setActivities', answer );
+                            break;
                     }
                 }
             };

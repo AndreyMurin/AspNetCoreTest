@@ -76,12 +76,21 @@ namespace AspNetCoreTest.Data.Models
                                     for (var i = 0; i < tmp.ArgsInt.Count; i=i+6)
                                     {
                                         // обязательно проверить кто раньше первый или второй и это важно
-                                        var min = new NCoords(tmp.ArgsInt[i + 0], tmp.ArgsInt[i + 1], tmp.ArgsInt[i + 2]);
+                                        // нем пох кто меньше надо найти меньший угол и больший в кубе
+                                        var min = new NCoords(
+                                            Math.Min(tmp.ArgsInt[i + 0], tmp.ArgsInt[i + 3]), 
+                                            Math.Min(tmp.ArgsInt[i + 1], tmp.ArgsInt[i + 4]), 
+                                            Math.Min(tmp.ArgsInt[i + 2], tmp.ArgsInt[i + 5]));
+                                        var max = new NCoords(
+                                            Math.Max(tmp.ArgsInt[i + 0], tmp.ArgsInt[i + 3]),
+                                            Math.Max(tmp.ArgsInt[i + 1], tmp.ArgsInt[i + 4]),
+                                            Math.Max(tmp.ArgsInt[i + 2], tmp.ArgsInt[i + 5]));
+                                        /*var min = new NCoords(tmp.ArgsInt[i + 0], tmp.ArgsInt[i + 1], tmp.ArgsInt[i + 2]);
                                         var max = new NCoords(tmp.ArgsInt[i + 3], tmp.ArgsInt[i + 4], tmp.ArgsInt[i + 5]);
                                         if (max.ToSingle(LenX, LenY) < min.ToSingle(LenX, LenY))
                                         {
                                             var t = min; min = max; max = t;
-                                        }
+                                        }*/
                                         val.Add(new NRange()
                                         {
                                             MinX = min.X, MinY = min.Y, MinZ = min.Z,
@@ -143,6 +152,28 @@ namespace AspNetCoreTest.Data.Models
             List<NRange> tmp2;
             Subscribers.TryRemove(webSocket, out tmp2);
             //_logger.LogInformation(1113, "NNetServer SubscribeClient end");
+        }
+
+        // рассылаем всем подписчикам инфу о том что нейрон активировался
+        public override Task SendActiveNeuronAsync(List<SendActivity> list)
+        {
+            var tasks = new List<Task>();
+            // вроде как потокобезопасно
+            foreach (var s in Subscribers)
+            {
+                var acts = new List<SendActivity>();
+                foreach (var a in list)
+                {
+                    if (s.Value.Any(i => i.Test(a.Coords))) acts.Add(a);
+                }
+                if (acts.Any())
+                {
+                    tasks.Add(
+                        SendResponseAsync(s.Key, JsonConvert.SerializeObject(new WSResponseActivities { Action = "activities", Activities = acts }, Formatting.Indented))
+                        );
+                }
+            }
+            return Task.WhenAll(tasks);
         }
 
         private Task SendNeuronsAsync(WebSocket ws, List<NeuronForDraw> neurons, string action) {

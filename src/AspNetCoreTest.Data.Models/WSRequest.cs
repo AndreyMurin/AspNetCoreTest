@@ -32,6 +32,11 @@ namespace AspNetCoreTest.Data.Models
         //public List<string> Args { get; set; }
     }
 
+    public class WSResponseActivities : WSResponse
+    {
+        public List<SendActivity> Activities { get; set; }
+    }
+
     public class WSResponseNeurons : WSResponse
     {
         public List<NeuronForDraw> Neurons { get; set; }

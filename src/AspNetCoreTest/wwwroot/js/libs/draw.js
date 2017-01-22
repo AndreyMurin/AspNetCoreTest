@@ -193,6 +193,10 @@
             //console.log( 'getOpacityByWeight:', weight, '->', nWeight );
             return nWeight;
         },
+        setActivities = function ( activities ) {
+            console.log( 'setActivities', activities );
+
+        },
 
         longToPos = function ( i, lenX, lenY, lenZ ) {
             // вычисляем z
@@ -439,6 +443,9 @@
         };
         base.setNeurons = function ( neurons ) {
             setNeurons( neurons );
+        };
+        base.setActivities = function ( activities ) {
+            setActivities( activities );
         };
 
         return create.call( base );
