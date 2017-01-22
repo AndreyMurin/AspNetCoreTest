@@ -212,7 +212,7 @@ namespace AspNetCoreTest.Data.Models
             // в этом месте значение _state может увеличится другим потоком, но нам как бы пофиг. либо этот либо тот процесс получат в newState значение выше порога и запустят разряд
             //Net.LogInformation(321, "Neuron IncState {coords} + {state} = {newstate}", coords, state, _state);
 
-            if (_checkState())
+            if (_checkState() && _isStarted==0)
             {
                 Net.LogInformation(321, "Neuron IncState {coords} activated!!!!!", coords);
 
