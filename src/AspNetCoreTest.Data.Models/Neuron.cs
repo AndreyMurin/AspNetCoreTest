@@ -81,7 +81,7 @@ namespace AspNetCoreTest.Data.Models
             //Index = index;
             Output = new List<NRelation>();
             State = rand.Next(NNet.MIN_INIT_STATE, NNet.MAX_INIT_STATE);
-            SpikePeriod = rand.Next(10, 1000);
+            SpikePeriod = rand.Next(NNet.MIN_SPIKE_PERIOD, NNet.MAX_SPIKE_PERIOD);
         }
 
         // для отладки асинхронного чтения записи
@@ -101,7 +101,14 @@ namespace AspNetCoreTest.Data.Models
         private void _decreaseState()
         {
             // пока по тупому 
-            var newState = Interlocked.Add(ref _state, -100);
+            if (_state > 0)
+            {
+                var newState = Interlocked.Add(ref _state, -100);
+            }
+            else
+            {
+                var newState = Interlocked.Add(ref _state, 100);
+            }
         }
 
         // проверка состояния нйерона активировался или нет
@@ -110,19 +117,41 @@ namespace AspNetCoreTest.Data.Models
             return ((_state > 0 && _state > NNet.MAX_STATE) || (_state < 0 && _state < NNet.MIN_STATE));
         }
 
+        // усыпаем на период, но проверяем NNet.isStarted и если сеть стопарнули то сразу выходим
+        private void _sleep(int period)
+        {
+            var minsleep = 100;
+            if (period <= minsleep)
+            {
+                Thread.Sleep(period);
+            }
+            else
+            {
+                for (var i = 0; i < (period / minsleep); i++)
+                {
+                    Thread.Sleep(minsleep);
+                    if (NNet.isStarted == 0) return;// сеть остановлена выходим
+                }
+                var ostatok = period - ((period / minsleep) * minsleep);
+                if (ostatok > 0) Thread.Sleep(ostatok);
+            }
+        }
+
         // в этой функции мы всегда! должны быть тока одним потоком. здесь мы программируем и выполняем цепочки разрядов с затуханием силы и с определенной частотой
         public Task SpikeAsync(int x, int y, int z)
         {
+            //Net.LogInformation(321, "TRY Neuron SpikeAsync {x} {y} {z}", x, y, z);
             // нейрон активировался. НО он может быть уже активирован другим процессом. надо как-то без блокировки проверить
             // CompareExchange возвращает старое значение
             if (0 == Interlocked.CompareExchange(ref _isStarted, 1, 0)) // if (_isActive==0) _isActive=1; 
             {
                 return Task.Run(() =>
                 {
+                    //Net.LogInformation(321, "Neuron SpikeAsync {x} {y} {z} success", x, y, z);
                     Interlocked.Increment(ref NNet.Threads);
                     try
                     {
-                        while (_checkState() && NNet.isStarted == 0)
+                        while (_checkState() && NNet.isStarted == 1)
                         {
                             Net.SendActiveQueue.Enqueue(new SendActivity { Coords = new NCoords(x, y, z), State = _state });
                             LastActive = DateTime.Now;
@@ -144,7 +173,8 @@ namespace AspNetCoreTest.Data.Models
 
                             if (_checkState())
                             {
-                                Thread.Sleep(SpikePeriod);
+                                // надо разбить успыание на периоды не больше полсекунды
+                                _sleep(SpikePeriod);
                             }
 
                             if (NNet.isStarted == 0) break;// сеть остановлена выходим
@@ -180,9 +210,12 @@ namespace AspNetCoreTest.Data.Models
             var newState = Interlocked.Add(ref _state, state);
 
             // в этом месте значение _state может увеличится другим потоком, но нам как бы пофиг. либо этот либо тот процесс получат в newState значение выше порога и запустят разряд
+            //Net.LogInformation(321, "Neuron IncState {coords} + {state} = {newstate}", coords, state, _state);
 
             if (_checkState())
             {
+                Net.LogInformation(321, "Neuron IncState {coords} activated!!!!!", coords);
+
                 // просто метим как активный
                 IsActive = 1;
 

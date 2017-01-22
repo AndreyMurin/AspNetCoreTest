@@ -20,6 +20,7 @@
         statusCont,
         textCont,
         drawCont,
+        threadsCont,
         subscribeCont = {},
 
         sendRequest = function ( obj ) {
@@ -41,27 +42,18 @@
             // сохранять или нет выбранные области? пока нет смысла
             console.log( 'subscribe' );
 
-            // надо узнать какой нейрон младший по индексам
-            // один фиг все равно проверять на сервере поэтому порядок не важен
-            /*var needSwap = false;
-            if (arg.secondN.z < args.firstN.z) { // по оси z второй меньше значит меняем местами
-                needSwap = true;
-            } else if (arg.secondN.z == args.firstN.z) { // по оси z равно => сраниваем дальше
-                if (arg.secondN.y < args.firstN.y) {
-                    needSwap = true;
-                } else if (arg.secondN.y == args.firstN.y) {
-                    if (arg.secondN.x < args.firstN.x) {
-                        needSwap = true;
-                    }
-                }
-            }
-            if (needSwap) {
-                var tmp = args.firstN;
-                args.firstN = args.secondN;
-                args.secondN = tmp;
-            }*/
-
             sendRequest( { Action: 'subscribe', ArgsInt: ranges } );
+        },
+        setInput = function ( ranges ) {
+            console.log( 'setInput' );
+
+            sendRequest( { Action: 'setinput', ArgsInt: ranges } );
+        },
+        start = function ( ) {
+            sendRequest( { Action: 'start' } );
+        },
+        stop = function () {
+            sendRequest( { Action: 'stop' } );
         },
         clearSubscribeBlock = function () {
             subscribeCont.MinX.val( '' );
@@ -90,17 +82,21 @@
             }
         },
         drawControls = function ( value ) {
+            threadsCont = $( '<div></div>' ).appendTo( element );
+            // ----------------------- подписка
             subscribeCont.Form = $( '<form class="subscribe"></form>' )
                 .on( 'submit', function () {
                     return false;
                 } )
                 .appendTo( element );
+
             subscribeCont.MinX = $( '<input name="ArgsInt" />' ).appendTo( subscribeCont.Form );
             subscribeCont.MinY = $( '<input name="ArgsInt" />' ).appendTo( subscribeCont.Form );
             subscribeCont.MinZ = $( '<input name="ArgsInt" />' ).appendTo( subscribeCont.Form );
             subscribeCont.MaxX = $( '<input name="ArgsInt" />' ).appendTo( subscribeCont.Form );
             subscribeCont.MaxY = $( '<input name="ArgsInt" />' ).appendTo( subscribeCont.Form );
             subscribeCont.MaxZ = $( '<input name="ArgsInt" />' ).appendTo( subscribeCont.Form );
+
             subscribeCont.Button = $( '<button class="btn btn-primary">Subscribe</button>' )
                 .on( 'click', function () {
                     var args = [
@@ -114,6 +110,35 @@
                 .appendTo( subscribeCont.Form );
 
             clearSubscribeBlock();
+            // ----------------------- конец подписки
+
+            var setInputVal = $( '<input />' ).appendTo( element );
+            var setInputButton = $( '<button class="btn btn-warning">Set Input</button>' )
+                .on( 'click', function () {
+                    var args = [
+                        subscribeCont.MinX.val(), subscribeCont.MinY.val(), subscribeCont.MinZ.val(),
+                        subscribeCont.MaxX.val(), subscribeCont.MaxY.val(), subscribeCont.MaxZ.val(),
+                        setInputVal.val()
+                    ];
+
+                    setInput( args );
+                    return false;
+                } )
+                .appendTo( element );
+
+            var startButton = $( '<button class="btn btn-success">Start</button>' )
+                .on( 'click', function () {
+                    start();
+                    return false;
+                } )
+                .appendTo( element );
+            var stopButton = $( '<button class="btn btn-danger">Stop</button>' )
+                .on( 'click', function () {
+                    stop();
+                    return false;
+                } )
+                .appendTo( element );
+
 
             statusCont = $( '<div class="bt-controls-status"></div>' ).appendTo( element );
             textCont = $( '<div class="bt-controls-text"></div>' ).appendTo( element );
@@ -154,6 +179,7 @@
                             break;
                         case 'activities':
                             drawCont.btDraw( 'setActivities', answer );
+                            threadsCont.html( answer.Threads);
                             break;
                     }
                 }

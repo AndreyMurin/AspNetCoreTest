@@ -41,6 +41,8 @@ namespace AspNetCoreTest.Data.Models
         public float MaxWeight { get; set; }
 
         public const int MAX_SEND_ACTIVITIES = 10;
+        public const int MAX_SPIKE_PERIOD = 3000; // милисекунд
+        public const int MIN_SPIKE_PERIOD = 100; // милисекунд
 
         // максимум и минимум состояний нейронов
         //public double MinState { get; set; }
@@ -74,9 +76,14 @@ namespace AspNetCoreTest.Data.Models
             }
         }
 
-        // используем статик для разработки (чтобы получить доступ из нейронов) 
-        protected static ILogger<NNet> _logger;
+        // используем статик для разработки (чтобы получить доступ из нейронов) у нейрона вся сеть в статике
+        [JsonIgnore]
+        public readonly ILogger<NNet> _logger;
         //private readonly ILogger<NNet> _logger;
+        public void LogInformation(int code, string message, params object[] args)
+        {
+            _logger.LogInformation(code, message, args);
+        }
 
         protected readonly IOptions<NNetConfig> _optionsAccessor;
         protected readonly IRnd _rand;
@@ -218,7 +225,7 @@ namespace AspNetCoreTest.Data.Models
                             QueueNeuron n;
                             if (/*!Queue.IsEmpty &&*/ Queue.TryDequeue(out n))
                             {
-                                //_logger.LogInformation("Exec task {Index}", n.Index);
+                                _logger.LogInformation("Exec task {coords}", n.Coords);
                                 //_logger.LogInformation("Task exists");
                                 // надо как то организовать теперь управление запущенными задачами
                                 // в принципе мы можем следить за NNet.Threads там как раз счетчик запущенных потоков именно нейронов
@@ -245,7 +252,7 @@ namespace AspNetCoreTest.Data.Models
                     // пока тока так можно гарантирвоать окончание работы всех нейронов? но не более 2 секунд
                     var exitDelim = 0;
                     var ts = 10;
-                    while (Threads > 0 && exitDelim < 2000) { exitDelim += ts; Thread.Sleep(ts); }
+                    while (Threads > 0 && exitDelim < 5000) { exitDelim += ts; Thread.Sleep(ts); }
                     if (Threads > 0) _logger.LogError("----> Not all task was completed!!!! {t}", Threads);
                     Threads = 0;
                 });
@@ -259,6 +266,8 @@ namespace AspNetCoreTest.Data.Models
         // запускаем сеть в работу (потоки обработки нейронов не затрагиваются)
         public void Start()
         {
+            Threads = 0;
+
             // а вот очередь отправки мы инициализируем тут
             SendActiveQueue = new ConcurrentQueue<SendActivity>();
 
@@ -275,7 +284,6 @@ namespace AspNetCoreTest.Data.Models
 
             //_workingTask.Wait();
             Task.WaitAll( new Task[] { _workingTask, _workingSATask } );
-            
         }
 
         // активация входов (за раз сразу несколько)

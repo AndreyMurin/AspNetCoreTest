@@ -34,6 +34,7 @@ namespace AspNetCoreTest.Data.Models
 
     public class WSResponseActivities : WSResponse
     {
+        public int Threads { get; set; }
         public List<SendActivity> Activities { get; set; }
     }
 

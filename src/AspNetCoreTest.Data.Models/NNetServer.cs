@@ -125,6 +125,47 @@ namespace AspNetCoreTest.Data.Models
                                 case "getnetconfig":
                                     await SendConfigAsync(webSocket, tmp.Action);
                                     break;
+                                case "start":
+                                    Start();
+                                    await SendMessageAsync(webSocket, "OK", tmp.Action);
+                                    break;
+                                case "stop":
+                                    Stop();
+                                    await SendMessageAsync(webSocket, "OK", tmp.Action);
+                                    break;
+                                case "setinput":
+                                    if (tmp.ArgsInt.Count != 7) { await SendErrorAsync(webSocket, "Число аргументов ArgsInt должно быть = 7", tmp.Action); return; }
+                                    
+                                    var inputs = new Dictionary<NCoords, int>();
+
+                                    {
+                                        var i = 0;
+                                        // обязательно проверить кто раньше первый или второй и это важно
+                                        // нам пох кто меньше надо найти меньший угол и больший в кубе
+                                        var min = new NCoords(
+                                            Math.Min(tmp.ArgsInt[i + 0], tmp.ArgsInt[i + 3]),
+                                            Math.Min(tmp.ArgsInt[i + 1], tmp.ArgsInt[i + 4]),
+                                            Math.Min(tmp.ArgsInt[i + 2], tmp.ArgsInt[i + 5]));
+                                        var max = new NCoords(
+                                            Math.Max(tmp.ArgsInt[i + 0], tmp.ArgsInt[i + 3]),
+                                            Math.Max(tmp.ArgsInt[i + 1], tmp.ArgsInt[i + 4]),
+                                            Math.Max(tmp.ArgsInt[i + 2], tmp.ArgsInt[i + 5]));
+
+                                        for (var z = min.Z; z <= max.Z; z++)
+                                        {
+                                            for (var y = min.Y; y <= max.Y; y++)
+                                            {
+                                                for (var x = min.X; x <= max.X; x++)
+                                                {
+                                                    inputs[new NCoords(x, y, z)] = tmp.ArgsInt[i + 6];
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    SetInputs(inputs);
+                                    await SendMessageAsync(webSocket, "OK", tmp.Action);
+                                    break;
                             }
                             break;
                     }
@@ -169,7 +210,7 @@ namespace AspNetCoreTest.Data.Models
                 if (acts.Any())
                 {
                     tasks.Add(
-                        SendResponseAsync(s.Key, JsonConvert.SerializeObject(new WSResponseActivities { Action = "activities", Activities = acts }, Formatting.Indented))
+                        SendResponseAsync(s.Key, JsonConvert.SerializeObject(new WSResponseActivities { Action = "activities", Activities = acts, Threads = Threads }, Formatting.Indented))
                         );
                 }
             }
