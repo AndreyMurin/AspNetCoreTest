@@ -98,20 +98,32 @@ namespace AspNetCoreTest.Data.Models
         }
 
         // функция уменьшающая состояние нейрона при разряде
-        private void _decreaseState()
+        private void _decreaseState(int dec)
         {
-            // пока по тупому 
+            // если нейрон с положительным зарядом то dec всегда будет >0, так как связи всегда положительные. и наоборот
+            // главное чтобы нейрон не потерял свой свой знак. очень внезапно к обучению
+
             if (_state > 0)
             {
-                var newState = Interlocked.Add(ref _state, -100);
+                var newState = Interlocked.Add(ref _state, -dec);
+                // тут _state могло изменится, но пока на это забьем
+                if (newState < 0)
+                {
+                    _state = 0; // не очень удачно так как нарушаем закон сохранения энергии
+                }
             }
             else
             {
-                var newState = Interlocked.Add(ref _state, 100);
+                var newState = Interlocked.Add(ref _state, -dec);
+                // тут _state могло изменится, но пока на это забьем
+                if (newState > 0)
+                {
+                    _state = 0; // не очень удачно так как нарушаем закон сохранения энергии
+                }
             }
         }
 
-        // проверка состояния нйерона активировался или нет
+        // проверка состояния нейрона активировался или нет
         private bool _checkState()
         {
             return ((_state > 0 && _state > NNet.MAX_STATE) || (_state < 0 && _state < NNet.MIN_STATE));
@@ -157,16 +169,17 @@ namespace AspNetCoreTest.Data.Models
                             LastActive = DateTime.Now;
 
                             // пропускаем ток
+                            var s = 0; // суммируем скока заряда ушло (если нейрон с положительным зарядом то тут всегда будет >0, так как связи всегда положительные. и наоборот)
                             foreach (var o in Output)
                             {
                                 var coord = new NCoords(o.Neuron, Net.LenX, Net.LenY, Net.LenZ);
                                 var state = (int)(_state * o.Weight);
-
+                                s += state;
                                 Net.Neurons[coord.Z][coord.Y][coord.X].IncState(state, coord);
                             }
                             
                             // уменьшаем свое состояние
-                            _decreaseState();
+                            _decreaseState(s);
 
                             // не важно когда мы выйдем до засыпания или после эта инфа потеряется при остановке
                             if (NNet.isStarted == 0) break;// сеть остановлена выходим
