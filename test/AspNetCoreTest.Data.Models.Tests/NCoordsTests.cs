@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -28,6 +29,15 @@ namespace AspNetCoreTest.Data.Models.Tests
                 }
                 //Assert.True(true);
             }
+        }
+
+        
+        [Fact]
+        public void TestInterlockedAdd()
+        {
+            int _state = 10;
+            var res = Interlocked.Add(ref _state, 20);
+            Assert.True(res == 30);
         }
     }
 }

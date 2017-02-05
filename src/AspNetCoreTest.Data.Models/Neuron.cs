@@ -191,12 +191,10 @@ namespace AspNetCoreTest.Data.Models
                             }
 
                             if (NNet.isStarted == 0) break;// сеть остановлена выходим
-                            
-                            // в теории задача уже должна быть выполнена и ждать ее мы нах не будем, если что нам пофигу ушли данные или нет
-                            //Task.WaitAll(t);
                         }
 
-                        IsActive = 0;
+                        // здесь нельзя снимать активность! а что если сеть остановили и мы вышли из цикла?
+                        if (!_checkState()) IsActive = 0;
                     }
                     finally // при любом раскладе уменьшить число потоков иначе ждать при остановке будем вечно
                     {
@@ -213,7 +211,7 @@ namespace AspNetCoreTest.Data.Models
 
         // увеличиваем состояние нейрона и запускаем разряды
         // не делать async Task! так как в этом случае мы тупо встанем в зависон
-        public void IncState(int state, NCoords coords)
+        public int IncState(int state, NCoords coords)
         {
             //return Task.Run(() =>
             //{
@@ -238,6 +236,7 @@ namespace AspNetCoreTest.Data.Models
 
             //Interlocked.Decrement(ref NNet.Threads);
             //});
+            return newState;
         }
 
         /*public void Tick()
