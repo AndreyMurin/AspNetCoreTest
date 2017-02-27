@@ -27,6 +27,30 @@ namespace AspNetCoreTest.Data.Models
         // 32 бита
         public float Weight { get; set; }
 
+        public float WeightSum
+        {
+            get
+            {
+                // не надо потокообезопасить! так как это делается в одном потоке (1 нейрон не может быть активным в 2 потоках)
+                return Weight + WeightChange;
+            }
+        }
+
+        private float _weightChange;
+        // изменение веса связи за период (например за день) во время сна будем либо принимать суточные изменения веса либо отклонять их. пока не знаю по каким принципам
+        [JsonProperty("с")] // минимизируем названия
+        public float WeightChange
+        {
+            get
+            {
+                return _weightChange;
+            }
+            set
+            {
+                _weightChange = value;
+            }
+        }
+
         // индекс нейрона для сохранения-загрузки (long хватит за глаза)
         // 64 бита
         [JsonProperty("n")] // минимизируем названия
@@ -38,6 +62,54 @@ namespace AspNetCoreTest.Data.Models
         public void SetNeuron(Neuron neuron) // никаких ref в параметрах не надо!
         {
             //_neuron = neuron;
+        }
+
+        // функция изменения веса связи
+        public float IncWeight(float addend)
+        {
+            // не надо потокообезопасить! так как это делается в одном потоке (вот тут не уверен насчет 1 потока)
+            //WeightChange += addend;
+            
+            // копипизда отсюда https://msdn.microsoft.com/en-us/library/cd0811yf(v=vs.110).aspx
+            float initialValue, computedValue;
+            do
+            {
+                // Save the current running total in a local variable.
+                initialValue = _weightChange;
+
+                // Add the new value to the running total.
+                computedValue = initialValue + addend;
+
+                // CompareExchange compares totalValue to initialValue. If
+                // they are not equal, then another thread has updated the
+                // running total since this loop started. CompareExchange
+                // does not update totalValue. CompareExchange returns the
+                // contents of totalValue, which do not equal initialValue,
+                // so the loop executes again.
+            }
+            while (initialValue != Interlocked.CompareExchange(ref _weightChange,
+                computedValue, initialValue));
+            // If no other thread updated the running total, then 
+            // totalValue and initialValue are equal when CompareExchange
+            // compares them, and computedValue is stored in totalValue.
+            // CompareExchange returns the value that was in totalValue
+            // before the update, which is equal to initialValue, so the 
+            // loop ends.
+
+            // The function returns computedValue, not totalValue, because
+            // totalValue could be changed by another thread between
+            // the time the loop ends and the function returns.
+            return computedValue;
+        }
+
+        public void AproveWeight()
+        {
+            Weight += WeightChange;
+        }
+
+        public void RejectWeight()
+        {
+            WeightChange = 0;
         }
     }
 
@@ -123,6 +195,69 @@ namespace AspNetCoreTest.Data.Models
             }
         }
 
+        // тупой вариант расчета новых состояний (нарушает закон сохранения - сеть быстро "взрывается")
+        private void _evalNewStates()
+        {
+            // пропускаем ток
+            var s = 0; // суммируем скока заряда ушло (если нейрон с положительным зарядом то тут всегда будет >0, так как связи всегда положительные. и наоборот)
+            foreach (var o in Output)
+            {
+                var coord = new NCoords(o.Neuron, Net.LenX, Net.LenY, Net.LenZ);
+                var state = (int)(_state * o.WeightSum);
+                s += state;
+                Net.Neurons[coord.Z][coord.Y][coord.X].IncState(state, coord);
+            }
+
+            // уменьшаем свое состояние
+            _decreaseState(s);
+        }
+
+        // вариант с распределением существующего заряда равномерно в зависимости от веса
+        private void _evalNewStates2()
+        {
+            var s = _state; // _state может меняться в процессе
+            // если выход всего 1, то результат (state0+state1) / 2 для обоих состояний (оно выравнивается всегда)
+            #region one output
+            if (Output.Count == 1)
+            {
+                var o = Output[0];
+                var coord = new NCoords(o.Neuron, Net.LenX, Net.LenY, Net.LenZ);
+                var n = Net.Neurons[coord.Z][coord.Y][coord.X];
+                var ts = n.State;
+                if (s > 0)
+                {
+                    if (ts > 0) // + => +
+                    {
+                        if (s <= ts) // заряд активного нейрона меньше целевого, тут ничего не должно происходить (возможно уменьшение веса связи???)
+                        {
+                            return;
+                        }
+                        //var ns = (s + ts) / 2;
+                        //_state -= s - (s + ts) / 2 => _state -= (s-ts)/2
+                        Interlocked.Add(ref _state, -(s - ts) / 2);
+                        n.IncState((s - ts) / 2, coord);
+                    }
+                    else        // + => -
+                    {
+
+                    }
+                }
+                else
+                {
+
+                }
+                return;
+            }
+            #endregion
+
+            // если выходов больше, то 
+            foreach (var o in Output)
+            {
+
+            }
+
+        }
+
         // проверка состояния нейрона активировался или нет
         private bool _checkState()
         {
@@ -168,18 +303,7 @@ namespace AspNetCoreTest.Data.Models
                             Net.SendActiveQueue.Enqueue(new SendActivity { Coords = new NCoords(x, y, z), State = _state });
                             LastActive = DateTime.Now;
 
-                            // пропускаем ток
-                            var s = 0; // суммируем скока заряда ушло (если нейрон с положительным зарядом то тут всегда будет >0, так как связи всегда положительные. и наоборот)
-                            foreach (var o in Output)
-                            {
-                                var coord = new NCoords(o.Neuron, Net.LenX, Net.LenY, Net.LenZ);
-                                var state = (int)(_state * o.Weight);
-                                s += state;
-                                Net.Neurons[coord.Z][coord.Y][coord.X].IncState(state, coord);
-                            }
-                            
-                            // уменьшаем свое состояние
-                            _decreaseState(s);
+                            _evalNewStates();
 
                             // не важно когда мы выйдем до засыпания или после эта инфа потеряется при остановке
                             if (NNet.isStarted == 0) break;// сеть остановлена выходим
@@ -238,27 +362,6 @@ namespace AspNetCoreTest.Data.Models
             //});
             return newState;
         }
-
-        /*public void Tick()
-        {
-            var tid = Thread.CurrentThread.ManagedThreadId;
-            //var NnetStarted = Interlocked.Read(ref NNet.isStarted);
-            var NnetStarted = NNet.isStarted;
-            if (NnetStarted == 0) return; // сеть остановлена
-
-            if (_isStarted) return;
-            _isStarted = true;
-
-            if (State > 1000) // типа мы активировались надо пересчитать состяния прицепленных нейронов
-            {
-                foreach (var o in Output)
-                {
-
-                }
-            }
-
-            _isStarted = false;
-        }*/
 
 
     }

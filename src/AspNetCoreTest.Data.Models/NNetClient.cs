@@ -19,5 +19,9 @@ namespace AspNetCoreTest.Data.Models
             return Task.CompletedTask;
         }
 
+        public override Task SendActiveNeuronAsync(List<SendActivity> list)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

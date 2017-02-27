@@ -17,12 +17,12 @@ using System.Collections.Concurrent;
 namespace AspNetCoreTest.Data.Models
 {
     
-    public class NNet : IDisposable
+    public abstract class NNet : IDisposable
     {
         // константы инициализации
         // макс мин вес связи (по идее инициализация должна быть очень слабой! в пределах 0.1 и даже возможно меньше)
         // отрицательных связей не делаем - связь это проводимость тока. она, по сути, обратна сопротивлению
-        // макс вес по той же причине не должен быть выше 1 (иначе идет по пизде закон сохранения энергии) 
+        // макс вес по той же причине не должен быть выше 1 (иначе идет по пизде закон сохранения энергии, при тупом расчете новых состояний он и так идет по пизде) 
         public const float MIN_INIT_WEIGHT = 0;//-0.5F;
         public const float MAX_INIT_WEIGHT = 0.5F;
 
@@ -305,10 +305,10 @@ namespace AspNetCoreTest.Data.Models
         }
 
         // рассылаем всем подписчикам инфу о том что нейрон активировался
-        public virtual Task SendActiveNeuronAsync(List<SendActivity> list)
-        {
+        public abstract Task SendActiveNeuronAsync(List<SendActivity> list);
+        /*{
             return Task.CompletedTask;
-        }
+        }*/
 
         // установка безусловного рефлекса, будем проводить тупо по прямой от начальной точки до конечной (ставим макс вес если связи нет то создадим ее)
         // надо подумать хорошо ли так. с одной стороны максимальная скрость реакции с другой очень сложно подавить такой рефлекс условным
@@ -465,9 +465,10 @@ namespace AspNetCoreTest.Data.Models
                         if (x == xxx && yyy == y && z == zz) continue;
 
                         var coords = new NCoords(xxx, yyy, zz);
-                        var o = new NRelation() { Neuron = coords.ToSingle(LenX, LenY), Weight = _rand.NextFloat(MIN_INIT_WEIGHT, MAX_INIT_WEIGHT) };
+                        var o = new NRelation() { Neuron = coords.ToSingle(LenX, LenY), Weight = _rand.NextFloat(MIN_INIT_WEIGHT, MAX_INIT_WEIGHT), WeightChange=0 };
                         if (NEED_STAT_WEIGHT)
                         {
+                            // здесь не надо юзать WeightSum так как WeightChange==0
                             if (MinWeight > o.Weight) MinWeight = o.Weight;
                             if (MaxWeight < o.Weight) MaxWeight = o.Weight;
                         }

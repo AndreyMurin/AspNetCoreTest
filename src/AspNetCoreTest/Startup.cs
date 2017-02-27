@@ -97,32 +97,7 @@ namespace AspNetCoreTest
             app.UseStaticFiles();
 
             app.UseWebSockets();
-            //app.UseMiddleware<WebsocketsMiddleware>();
             app.UseWebsocketsMiddleware();
-            /*app.Use(async (http, next) =>
-            {
-                if (http.WebSockets.IsWebSocketRequest)
-                {
-
-                    var path = http.Request.Path;
-                    var proto = http.Request.Protocol;
-                    //Handle WebSocket Requests here.
-                    switch (path)
-                    {
-                        case "/chat":
-                            await Chat.NewClient(http);
-                            break;
-                        default:
-                            break;
-                            //await next();
-                            //throw new Exception("Not founded");
-                    }
-                }
-                else
-                {
-                    await next();
-                }
-            });*/
             
             app.UseMvc(routes =>
             {
