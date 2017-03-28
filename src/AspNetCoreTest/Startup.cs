@@ -53,9 +53,10 @@ namespace AspNetCoreTest
 
             // Uncomment to use mock storage
             //services.AddScoped(typeof(IStorage), typeof(AspNetCoreTest.Data.Mock.Storage));
-            services.AddScoped<IStorage, AspNetCoreTest.Data.Mock.Storage>();
+            //services.AddScoped<IStorage, AspNetCoreTest.Data.Mock.Storage>();
             // Uncomment to use SQLite storage
             //services.AddScoped(typeof(IStorage), typeof(AspNetCoreTest.Data.Sqlite.Storage));
+            services.AddScoped<IStorage, AspNetCoreTest.Data.Sqlite.Storage>();
 
             /*
             // -------------------------------------
