@@ -244,6 +244,7 @@ namespace AspNetCoreTest.Data.Models
                         {
                             _logger.LogError("----> Error: {e}", e);
                             Thread.Sleep(1000);
+                            //await Task.Delay(1000);
                         }
                         //finally
                         //{
