@@ -10,7 +10,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using AspNetCoreTest.Data.Abstractions;
 using AspNetCoreTest.Data.Models;
-using NLog.Extensions.Logging;
+//using NLog.Extensions.Logging;
+using NLog;
 using System.IO;
 using Microsoft.Extensions.FileProviders;
 
@@ -18,9 +19,13 @@ namespace AspNetCoreTest
 {
     public class Startup
     {
-        private IHostingEnvironment _hostingEnvironment;
+        //private IHostingEnvironment _hostingEnvironment;
 
-        public Startup(IHostingEnvironment env)
+        public Startup(IConfiguration configuration)
+        {
+            Configuration = configuration;
+        }
+        /*public Startup(IHostingEnvironment env)
         {
             var builder = new ConfigurationBuilder()
                 .SetBasePath(env.ContentRootPath)
@@ -35,9 +40,10 @@ namespace AspNetCoreTest
             Configuration = builder.Build();
 
             _hostingEnvironment = env;
-        }
+        }*/
 
-        public IConfigurationRoot Configuration { get; }
+        public IConfiguration Configuration { get; }
+        //public IConfigurationRoot Configuration { get; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
@@ -78,10 +84,10 @@ namespace AspNetCoreTest
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
         {
-            loggerFactory.AddConsole(Configuration.GetSection("Logging"));
-            loggerFactory.AddDebug();
+            //loggerFactory.AddConsole(Configuration.GetSection("Logging"));
+            //loggerFactory.AddDebug();
 
-            loggerFactory.AddNLog();
+            //loggerFactory.AddNLog();
             //needed for non-NETSTANDARD platforms: configure nlog.config in your project root
             //env.ConfigureNLog("nlog.config");
 

@@ -9,5 +9,6 @@ namespace AspNetCoreTest.Data.Abstractions
     public interface IItemRepository : IRepository
     {
         IEnumerable<Item> All();
+        //IEnumerable<Object> All();
     }
 }

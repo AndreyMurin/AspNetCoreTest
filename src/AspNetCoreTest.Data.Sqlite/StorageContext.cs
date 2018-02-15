@@ -30,7 +30,7 @@ namespace AspNetCoreTest.Data.Sqlite
             {
                 etb.HasKey(e => e.Id);
                 etb.Property(e => e.Id);
-                etb.ForSqliteToTable("Items");
+                //etb.ForSqliteToTable("Items");
             }
             );
         }

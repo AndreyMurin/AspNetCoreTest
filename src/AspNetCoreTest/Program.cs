@@ -5,6 +5,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using AspNetCoreTest.Data.Models;
+using Microsoft.AspNetCore;
+using NLog.Web;
+using NLog;
 
 namespace AspNetCoreTest
 {
@@ -12,18 +15,25 @@ namespace AspNetCoreTest
     {
         public static void Main(string[] args)
         {
-            var host = new WebHostBuilder()
-                .UseKestrel()
-                .UseContentRoot(Directory.GetCurrentDirectory())
-                .UseIISIntegration()
-                .UseStartup<Startup>()
-                .Build();
-
-            host.Run();
-
-            // создает сервис заново!!!
-            //NNet tmp = (NNet)host.Services.GetService(typeof(NNet));
-            //tmp.save();
+            var logger = NLogBuilder.ConfigureNLog("nlog.config").GetCurrentClassLogger();
+            try
+            {
+                logger.Debug("init main");
+                BuildWebHost(args).Run();
+                LogManager.ReconfigExistingLoggers();
+            }
+            catch (Exception e)
+            {
+                //NLog: catch setup errors
+                logger.Error(e, "Stopped program because of exception");
+                throw;
+            }
         }
+
+        public static IWebHost BuildWebHost(string[] args) =>
+            WebHost.CreateDefaultBuilder(args)
+                .UseStartup<Startup>()
+                .UseNLog()
+                .Build();
     }
 }

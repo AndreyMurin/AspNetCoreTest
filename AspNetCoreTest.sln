@@ -1,29 +1,28 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.27130.2027
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{87CA11C6-C196-43B3-85B4-FF63BBBE2FDA}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{29C43076-6A7E-4273-8DED-CD5052207763}"
 	ProjectSection(SolutionItems) = preProject
 		docs.txt = docs.txt
-		global.json = global.json
 	EndProjectSection
-EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "AspNetCoreTest", "src\AspNetCoreTest\AspNetCoreTest.xproj", "{C4686856-6CB5-4126-AD68-DF2FAB32024E}"
-EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "AspNetCoreTest.Data.Models", "src\AspNetCoreTest.Data.Models\AspNetCoreTest.Data.Models.xproj", "{07A8A9D6-74C3-436C-9531-5CADF01DD933}"
-EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "AspNetCoreTest.Data.Abstractions", "src\AspNetCoreTest.Data.Abstractions\AspNetCoreTest.Data.Abstractions.xproj", "{78033EAE-FA19-4FC9-9056-500B672AF2C6}"
-EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "AspNetCoreTest.Data.Mock", "src\AspNetCoreTest.Data.Mock\AspNetCoreTest.Data.Mock.xproj", "{2BA7C6EF-E2C9-4F6D-A2B9-CB5B486752E1}"
-EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "AspNetCoreTest.Data.Sqlite", "src\AspNetCoreTest.Data.Sqlite\AspNetCoreTest.Data.Sqlite.xproj", "{ED2799B2-F98F-45A7-AFD9-068FD03E8743}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{4BFD52F0-E045-487D-B59A-B2B2967ED17B}"
 EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "AspNetCoreTest.Data.Models.Tests", "test\AspNetCoreTest.Data.Models.Tests\AspNetCoreTest.Data.Models.Tests.xproj", "{7F25B4C0-DB41-4770-9661-314AFC95D245}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AspNetCoreTest", "src\AspNetCoreTest\AspNetCoreTest.csproj", "{C4686856-6CB5-4126-AD68-DF2FAB32024E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AspNetCoreTest.Data.Models", "src\AspNetCoreTest.Data.Models\AspNetCoreTest.Data.Models.csproj", "{07A8A9D6-74C3-436C-9531-5CADF01DD933}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AspNetCoreTest.Data.Abstractions", "src\AspNetCoreTest.Data.Abstractions\AspNetCoreTest.Data.Abstractions.csproj", "{78033EAE-FA19-4FC9-9056-500B672AF2C6}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AspNetCoreTest.Data.Mock", "src\AspNetCoreTest.Data.Mock\AspNetCoreTest.Data.Mock.csproj", "{2BA7C6EF-E2C9-4F6D-A2B9-CB5B486752E1}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AspNetCoreTest.Data.Sqlite", "src\AspNetCoreTest.Data.Sqlite\AspNetCoreTest.Data.Sqlite.csproj", "{ED2799B2-F98F-45A7-AFD9-068FD03E8743}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AspNetCoreTest.Data.Models.Tests", "test\AspNetCoreTest.Data.Models.Tests\AspNetCoreTest.Data.Models.Tests.csproj", "{7F25B4C0-DB41-4770-9661-314AFC95D245}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -66,5 +65,8 @@ Global
 		{2BA7C6EF-E2C9-4F6D-A2B9-CB5B486752E1} = {87CA11C6-C196-43B3-85B4-FF63BBBE2FDA}
 		{ED2799B2-F98F-45A7-AFD9-068FD03E8743} = {87CA11C6-C196-43B3-85B4-FF63BBBE2FDA}
 		{7F25B4C0-DB41-4770-9661-314AFC95D245} = {4BFD52F0-E045-487D-B59A-B2B2967ED17B}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {3B23960B-2201-4274-BE13-B71434870447}
 	EndGlobalSection
 EndGlobal
