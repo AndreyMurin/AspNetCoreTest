@@ -185,8 +185,9 @@ namespace AspNetCoreTest.Data.Models
         }
 
         // цикл отправки данных другим частям и подписчикам
-        private Task _sendActivities()
+        private Task _sendActivitiesTask()
         {
+            _logger.LogInformation("_sendActivities create task");
             return Task.Run(() =>
             {
                 List<SendActivity> list;
@@ -195,7 +196,7 @@ namespace AspNetCoreTest.Data.Models
                 {
                     var kol = 0;
                     list = new List<SendActivity>();
-                    while (SendActiveQueue.TryDequeue(out a) && kol<MAX_SEND_ACTIVITIES)
+                    while (SendActiveQueue.TryDequeue(out a) && kol < MAX_SEND_ACTIVITIES)
                     {
                         list.Add(a);
                     }
@@ -211,61 +212,69 @@ namespace AspNetCoreTest.Data.Models
             });
         }
 
+        private Task _workTask() {
+            _logger.LogInformation("_workTask create task");
+            return Task.Run(() =>
+            {
+                while (isStarted == 1)
+                {
+                    try
+                    {
+                        //_logger.LogInformation("Try read task .... IsEmpty={IsEmpty}", Queue.IsEmpty);
+                        QueueNeuron n;
+                        if (/*!Queue.IsEmpty &&*/ Queue.TryDequeue(out n))
+                        {
+                            _logger.LogInformation("Exec task {coords}", n.Coords);
+                            //_logger.LogInformation("Task exists");
+                            // надо как то организовать теперь управление запущенными задачами
+                            // в принципе мы можем следить за NNet.Threads там как раз счетчик запущенных потоков именно нейронов
+                            var task = n.Neuron.SpikeAsync(n.Coords.X, n.Coords.Y, n.Coords.Z);
+                        }
+                        else
+                        {
+                            //_logger.LogInformation("Task not exists");
+                            // засыпать или нет? стопарнем на милисекунду, чтобы не сильно нагружать процессор пока нет новых заданий
+                            Thread.Sleep(1);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _logger.LogError("----> Error: {e}", e);
+                        Thread.Sleep(1000);
+                        //await Task.Delay(1000);
+                    }
+                    //finally
+                    //{
+                    //    //_logger.LogError("----> finally!!!!!!!!!!!!!!!!!!!!");
+                    //    Thread.Sleep(1000);
+                    //}
+                }
+                // пока тока так можно гарантирвоать окончание работы всех нейронов? но не более 2 секунд
+                var exitDelim = 0;
+                var ts = 10;
+                while (Threads > 0 && exitDelim < 5000) { exitDelim += ts; Thread.Sleep(ts); }
+                if (Threads > 0) _logger.LogError("----> Not all task was completed!!!! {t}", Threads);
+                Threads = 0;
+            });
+
+        }
+
         // рабочий цикл сети. все потоки нейронов стартуем строго отсюда
         private Task _work()
         {
             if (0 == Interlocked.CompareExchange(ref isStarted, 1, 0))
             {
+                
+                return Task.WhenAll(new Task[] { _workTask(), _sendActivitiesTask() });
                 // сохраним задачу чтобы ждать ее завершения при остановке
-                return Task.Run(() =>
-                {
-                    while (isStarted == 1)
-                    {
-                        try
-                        {
-                            //_logger.LogInformation("Try read task .... IsEmpty={IsEmpty}", Queue.IsEmpty);
-                            QueueNeuron n;
-                            if (/*!Queue.IsEmpty &&*/ Queue.TryDequeue(out n))
-                            {
-                                _logger.LogInformation("Exec task {coords}", n.Coords);
-                                //_logger.LogInformation("Task exists");
-                                // надо как то организовать теперь управление запущенными задачами
-                                // в принципе мы можем следить за NNet.Threads там как раз счетчик запущенных потоков именно нейронов
-                                var task = n.Neuron.SpikeAsync(n.Coords.X, n.Coords.Y, n.Coords.Z);
-                            }
-                            else
-                            {
-                                //_logger.LogInformation("Task not exists");
-                                // засыпать или нет? стопарнем на милисекунду, чтобы не сильно нагружать процессор пока нет новых заданий
-                                Thread.Sleep(1);
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            _logger.LogError("----> Error: {e}", e);
-                            Thread.Sleep(1000);
-                            //await Task.Delay(1000);
-                        }
-                        //finally
-                        //{
-                        //    //_logger.LogError("----> finally!!!!!!!!!!!!!!!!!!!!");
-                        //    Thread.Sleep(1000);
-                        //}
-                    }
-                    // пока тока так можно гарантирвоать окончание работы всех нейронов? но не более 2 секунд
-                    var exitDelim = 0;
-                    var ts = 10;
-                    while (Threads > 0 && exitDelim < 5000) { exitDelim += ts; Thread.Sleep(ts); }
-                    if (Threads > 0) _logger.LogError("----> Not all task was completed!!!! {t}", Threads);
-                    Threads = 0;
-                });
+
                 //return _workingTask;
             }
             return Task.CompletedTask;
         }
 
         private Task _workingTask = Task.CompletedTask;
-        private Task _workingSATask = Task.CompletedTask;
+        //private Task _workingSATask = Task.CompletedTask;
         // запускаем сеть в работу (потоки обработки нейронов не затрагиваются)
         public void Start()
         {
@@ -276,7 +285,7 @@ namespace AspNetCoreTest.Data.Models
 
             _workingTask = _work();
 
-            _workingSATask = _sendActivities();
+            //_workingSATask = _sendActivitiesTask();
         }
 
         // ставим сеть на паузу (потоки обработки нейронов не затрагиваются)
@@ -286,7 +295,7 @@ namespace AspNetCoreTest.Data.Models
             Interlocked.Exchange(ref isStarted, 0);
 
             //_workingTask.Wait();
-            Task.WaitAll( new Task[] { _workingTask, _workingSATask } );
+            Task.WaitAll( new Task[] { _workingTask/*, _workingSATask*/ } );
         }
 
         // активация входов (за раз сразу несколько)
@@ -727,8 +736,17 @@ namespace AspNetCoreTest.Data.Models
 
         protected virtual void Dispose(bool disposing)
         {
+            // отладка сохранения сети
+            try {
+                _logger.LogInformation(1111, "NNet Dispose(bool disposing): {disposedValue}, {disposing}", disposedValue, disposing);
+            }
+            catch (Exception) {
+                //Console.WriteLine(".....................");
+                //Thread.Sleep(1000);
+            }
             if (!disposedValue)
             {
+                disposedValue = true;
                 if (disposing)
                 {
                     // обязательно стопарнуть сеть!
@@ -740,7 +758,6 @@ namespace AspNetCoreTest.Data.Models
                 // TODO: освободить неуправляемые ресурсы (неуправляемые объекты) и переопределить ниже метод завершения.
                 // TODO: задать большим полям значение NULL.
 
-                disposedValue = true;
             }
         }
 
@@ -751,8 +768,19 @@ namespace AspNetCoreTest.Data.Models
         // }
 
         // Этот код добавлен для правильной реализации шаблона высвобождаемого класса.
-        void IDisposable.Dispose()
+        //void IDisposable.Dispose()
+        public void Dispose()
         {
+            // отладка сохранения сети
+            try
+            {
+                _logger.LogInformation(1111, "NNet Dispose(): {disposedValue}", disposedValue);
+            }
+            catch (Exception)
+            {
+                //Console.WriteLine(",,,,,,,,,,,,,,,,,,,,,,,,");
+                //Thread.Sleep(1000);
+            }
             // Не изменяйте этот код. Разместите код очистки выше, в методе Dispose(bool disposing).
             Dispose(true);
             // TODO: раскомментировать следующую строку, если метод завершения переопределен выше.

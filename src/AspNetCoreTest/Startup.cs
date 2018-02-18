@@ -81,9 +81,19 @@ namespace AspNetCoreTest
             services.AddSingleton<NNetServer, NNetServer>();
         }
 
+        //private void OnShutdown(object toDispose)
+        //{
+        //    ((IDisposable)toDispose).Dispose();
+        //}
+
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory/*, IApplicationLifetime applicationLifetime, NNetServer nNet*/)
         {
+            // реализуем корректное сохранение сети при завершение сервиса (при снятии задачи не вызывается %()
+            // https://andrewlock.net/four-ways-to-dispose-idisposables-in-asp-net-core/
+            //applicationLifetime.ApplicationStopping.Register(OnShutdown, nNet);
+            //applicationLifetime.ApplicationStopped.Register(OnShutdown, nNet);
+
             //loggerFactory.AddConsole(Configuration.GetSection("Logging"));
             //loggerFactory.AddDebug();
 

@@ -17,7 +17,8 @@
         element = $( elem ),
         webSocket,
         netConfig,
-        statusCont,
+        socketStatusCont,
+        netStatusCont,
         textCont,
         drawCont,
         threadsCont,
@@ -29,13 +30,14 @@
                 var j = JSON.stringify( obj );
                 webSocket.send( j );
             } else {
-                statusCont.text( "Connection is closed" );
+                socketStatusCont.text( "Connection is closed" );
             }
         },
         showError = function ( err, action ) {
             textCont.append( '<div class="alert alert-danger">' + ( action ? '<b>' + action + ':</b> ' : '' ) + err + '</div>' );
         },
         readConfig = function () {
+            //console.log('readConfig...');
             sendRequest( { Action: 'getnetconfig' } );
         },
         subscribe = function ( ranges ) {
@@ -139,9 +141,10 @@
                 } )
                 .appendTo( element );
 
+            netStatusCont = $('<div class="bt-controls-netstatus">unknown</div>').appendTo(element);
+            socketStatusCont = $('<div class="bt-controls-status"></div>').appendTo(element);
+            textCont = $('<div class="bt-controls-text"></div>').appendTo(element);
 
-            statusCont = $( '<div class="bt-controls-status"></div>' ).appendTo( element );
-            textCont = $( '<div class="bt-controls-text"></div>' ).appendTo( element );
             //element.html();
         },
         create = function () {
@@ -158,16 +161,20 @@
             }
             webSocket = new WebSocket( url );
             webSocket.onopen = function () {
-                statusCont.text( "connected" );
+                socketStatusCont.text( "connected" );
                 readConfig();
             };
             webSocket.onmessage = function ( evt ) {
                 //$("#spanText").append('<hr />' + evt.data);
                 var answer = JSON.parse( evt.data );
                 //console.log('onmessage:', evt.data, answer)
+                if (typeof answer.IsStarted !== 'undefined') {
+                    netStatusCont.text(answer.IsStarted == 1 ? 'work' : 'stop');
+                }
                 if ( typeof answer.Error !== 'undefined' && answer.Error ) {
                     showError( answer.Error, answer.Action );
                 } else {
+                    console.log('webSocket.onmessage', answer.Action)
                     switch ( answer.Action ) {
                         case 'getnetconfig':
                             netConfig = answer;
@@ -197,7 +204,7 @@
                 if ( typeof arguments !== undefined && arguments.length > 0 && typeof arguments[0].reason !== 'undefined' ) {
                     reason = ' reason: ' + arguments[0].reason;
                 }
-                statusCont.text( "disconnected." + reason );
+                socketStatusCont.text( "disconnected." + reason );
             };
 
             return base;

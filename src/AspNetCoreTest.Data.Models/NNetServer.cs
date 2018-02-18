@@ -210,7 +210,7 @@ namespace AspNetCoreTest.Data.Models
                 if (acts.Any())
                 {
                     tasks.Add(
-                        SendResponseAsync(s.Key, JsonConvert.SerializeObject(new WSResponseActivities { Action = "activities", Activities = acts, Threads = Threads }, Formatting.Indented))
+                        SendResponseAsync(s.Key, JsonConvert.SerializeObject(new WSResponseActivities { Action = "activities", IsStarted = isStarted, Activities = acts, Threads = Threads }, Formatting.Indented))
                         );
                 }
             }
@@ -220,7 +220,7 @@ namespace AspNetCoreTest.Data.Models
         private Task SendNeuronsAsync(WebSocket ws, List<NeuronForDraw> neurons, string action) {
             return Task.Run(() =>
             {
-                return SendResponseAsync(ws, JsonConvert.SerializeObject(new WSResponseNeurons { Action = action, Neurons = neurons }, Formatting.Indented));
+                return SendResponseAsync(ws, JsonConvert.SerializeObject(new WSResponseNeurons { Action = action, IsStarted = isStarted, Neurons = neurons }, Formatting.Indented));
             });
         }
 
@@ -277,18 +277,18 @@ namespace AspNetCoreTest.Data.Models
 
         private Task SendConfigAsync(WebSocket ws, string action)
         {
-            var resp = new WSResponseConfig { Action = action, LenX = LenX, LenY = LenY, LenZ = LenZ, MinWeight = MinWeight, MaxWeight = MaxWeight, MaxState=MAX_STATE, MinState=MIN_STATE };
+            var resp = new WSResponseConfig { Action = action, IsStarted = isStarted, LenX = LenX, LenY = LenY, LenZ = LenZ, MinWeight = MinWeight, MaxWeight = MaxWeight, MaxState=MAX_STATE, MinState=MIN_STATE };
             return SendResponseAsync(ws, JsonConvert.SerializeObject(resp, Formatting.Indented));
         }
 
         private Task SendMessageAsync(WebSocket ws, string message, string action)
         {
-            return SendResponseAsync(ws, JsonConvert.SerializeObject(new WSResponse { Action = action, Message = message }, Formatting.Indented));
+            return SendResponseAsync(ws, JsonConvert.SerializeObject(new WSResponse { Action = action, Message = message, IsStarted = isStarted }, Formatting.Indented));
         }
 
         private Task SendErrorAsync(WebSocket ws, string message, string action)
         {
-            return SendResponseAsync(ws, JsonConvert.SerializeObject(new WSResponse { Action = action, Error = message }, Formatting.Indented));
+            return SendResponseAsync(ws, JsonConvert.SerializeObject(new WSResponse { Action = action, Error = message, IsStarted = isStarted }, Formatting.Indented));
         }
 
         // отправляем строку клиенту (а в строке JSON)

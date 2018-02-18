@@ -29,6 +29,7 @@ namespace AspNetCoreTest.Data.Models
         public string Action { get; set; }
         public string Error { get; set; }
         public string Message { get; set; }
+        public int? IsStarted { get; set; } // null-абле для того чтобы отследить ошибки передачи
         //public List<string> Args { get; set; }
     }
 

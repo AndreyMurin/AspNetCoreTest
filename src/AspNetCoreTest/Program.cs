@@ -8,6 +8,7 @@ using AspNetCoreTest.Data.Models;
 using Microsoft.AspNetCore;
 using NLog.Web;
 using NLog;
+using System.Reflection;
 
 namespace AspNetCoreTest
 {
@@ -32,8 +33,10 @@ namespace AspNetCoreTest
 
         public static IWebHost BuildWebHost(string[] args) =>
             WebHost.CreateDefaultBuilder(args)
+                //.UseShutdownTimeout(new TimeSpan(0, 10, 0)) // ждем 10 минут для завершения
                 .UseStartup<Startup>()
                 .UseNLog()
                 .Build();
+
     }
 }
