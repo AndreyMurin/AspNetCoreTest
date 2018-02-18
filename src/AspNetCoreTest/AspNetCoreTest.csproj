@@ -31,7 +31,7 @@
     <PackageReference Include="NLog" Version="4.5.0-rc05" />
     
     <!--<PackageReference Include="Microsoft.AspNetCore.WebSockets.Server" Version="0.1.0" />-->
-    <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
+    <PackageReference Include="Newtonsoft.Json" Version="11.0.1" />
     <!--<PackageReference Include="BundlerMinifier.Core" Version="2.6.362" />-->
     <PackageReference Include="Microsoft.AspNetCore.All" Version="2.0.5" />
     
