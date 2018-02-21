@@ -187,20 +187,27 @@ namespace AspNetCoreTest.Data.Models
         // цикл отправки данных другим частям и подписчикам
         private Task _sendActivitiesTask()
         {
-            _logger.LogInformation("_sendActivities create task");
+            //_logger.LogInformation("_sendActivities create task");
             return Task.Run(() =>
             {
-                List<SendActivity> list;
+                List<SendActivity> list = new List<SendActivity>();
                 SendActivity a;
+                var kol = 0;
                 while (isStarted == 1)
                 {
-                    var kol = 0;
-                    list = new List<SendActivity>();
-                    while (SendActiveQueue.TryDequeue(out a) && kol < MAX_SEND_ACTIVITIES)
+                    //var kol = 0;
+                    //list = new List<SendActivity>();
+                    while (kol < MAX_SEND_ACTIVITIES && SendActiveQueue.TryDequeue(out a))
                     {
                         list.Add(a);
+                        kol++;
                     }
-                    if (list.Any()) Task.WaitAll(SendActiveNeuronAsync(list));
+                    if (kol > 0)
+                    {
+                        Task.WaitAll(SendActiveNeuronAsync(list));
+                        list = new List<SendActivity>();
+                        kol = 0;
+                    }
                 }
                 // досылаем остатки и выходим. если много в остатке будет то будет отправлен большой пакет. это не очень хорошо так как неконтролируемо
                 list = new List<SendActivity>();
@@ -213,15 +220,15 @@ namespace AspNetCoreTest.Data.Models
         }
 
         private Task _workTask() {
-            _logger.LogInformation("_workTask create task");
+            //_logger.LogInformation("_workTask create task");
             return Task.Run(() =>
             {
+                QueueNeuron n;
                 while (isStarted == 1)
                 {
                     try
                     {
                         //_logger.LogInformation("Try read task .... IsEmpty={IsEmpty}", Queue.IsEmpty);
-                        QueueNeuron n;
                         if (/*!Queue.IsEmpty &&*/ Queue.TryDequeue(out n))
                         {
                             _logger.LogInformation("Exec task {coords}", n.Coords);

@@ -207,6 +207,7 @@ namespace AspNetCoreTest.Data.Models
                 {
                     if (s.Value.Any(i => i.Test(a.Coords))) acts.Add(a);
                 }
+
                 if (acts.Any())
                 {
                     tasks.Add(
