@@ -17,7 +17,8 @@
         element = $( elem ),
         webSocket,
         isConnected = false,
-        netConfig,
+        subscribeRanges = undefined,
+        netConfig = undefined,
         socketStatusCont,
         netStatusCont,
         errorCont,
@@ -30,10 +31,10 @@
         },
         connect = function () {
             
-            //console.log('connect webSocket.readyState=', webSocket ? webSocket.readyState : '-');
+            console.log('connect webSocket.readyState=', webSocket ? webSocket.readyState : '-');
 
             // мы в процессе конекта. тупо ждем
-            if (webSocket && webSocket.readyState == WebSocket.CONNECTING) return;
+            if (webSocket && webSocket.readyState == WebSocket.CONNECTING || webSocket && webSocket.readyState == WebSocket.OPEN) return;
 
             clearError();
 
@@ -55,7 +56,7 @@
                 var answer = JSON.parse(evt.data);
                 //console.log('onmessage:', evt.data, answer)
                 if (typeof answer.IsStarted !== 'undefined') {
-                    netStatusCont.text(answer.IsStarted == 1 ? 'work' : 'stop');
+                    netStatusCont.text(answer.IsStarted ? 'work' : 'stop');
                 }
                 if (typeof answer.Error !== 'undefined' && answer.Error) {
                     showError(answer.Error, answer.Action);
@@ -84,7 +85,7 @@
                 //showError('Нет связи');
             };
             webSocket.onclose = function () {
-                //console.log('connect webSocket.onclose');
+                console.log('connect webSocket.onclose');
                 reconnect();
                 isConnected = false;
                 //console.log(arguments);
@@ -154,6 +155,8 @@
         },
         subscribe = function ( ranges ) {
             // сохранять или нет выбранные области? пока нет смысла
+            // теперь смысл етсь при реконекте пробуем переподписаться
+            subscribeRanges = ranges;
             console.log( 'subscribe' );
 
             sendRequest( { Action: 'subscribe', ArgsInt: ranges } );

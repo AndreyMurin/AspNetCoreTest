@@ -211,7 +211,7 @@ namespace AspNetCoreTest.Data.Models
                 if (acts.Any())
                 {
                     tasks.Add(
-                        SendResponseAsync(s.Key, JsonConvert.SerializeObject(new WSResponseActivities { Action = "activities", IsStarted = isStarted, Activities = acts, Threads = Threads }, Formatting.Indented))
+                        SendResponseAsync(s.Key, JsonConvert.SerializeObject(new WSResponseActivities { Action = "activities", IsStarted = !IsStoped(), Activities = acts, Threads = Threads }, Formatting.Indented))
                         );
                 }
             }
@@ -219,98 +219,112 @@ namespace AspNetCoreTest.Data.Models
         }
 
         private Task SendNeuronsAsync(WebSocket ws, List<NeuronForDraw> neurons, string action) {
-            return Task.Run(() =>
-            {
-                return SendResponseAsync(ws, JsonConvert.SerializeObject(new WSResponseNeurons { Action = action, IsStarted = isStarted, Neurons = neurons }, Formatting.Indented));
-            });
+            //return Task.Run(() =>
+            //{
+                return SendResponseAsync(ws, JsonConvert.SerializeObject(new WSResponseNeurons { Action = action, IsStarted = !IsStoped(), Neurons = neurons }, Formatting.Indented));
+            //});
         }
 
         // отправляем данные по выбранным нейронам
+        // проблема! когда одновременно пишем в один сокет в 2 потока, то похоже что сокет тупо валится
+        // повторить ошибку MaxNeuronsForSend=3, убрать логирование в отправке ответа, сделать подписку на сеть -> через раз сокет будет падать
+        // добавить логирование (возможно оно как раз создает временную задержку) и проблемы нет. проблема должна повторятся при большом MaxNeuronsForSend (больше пакет дольше отправка вероятнее конфликт), но и сеть должна быть побольше чем 3 на 3 на 3
+        // TODO переделать на последовательную отправку в один сокет
+        // исправлено!
         private Task SendNeuronsAsync(WebSocket ws, List<NRange> ranges, string action)
         {
-            //var resp = new WSResponseNeurons { Action = action, Neurons = _getOutputNeurons(ranges) };
-            var tasks = new List<Task>();
-            var neurons = new List<NeuronForDraw>();
-            foreach (var range in ranges)
+            return Task.Run(async () =>
             {
-                // если выбрана вся сеть то инпуты нет смысла гнать, в инпутах и так будут куча дублей их надо как-то разрулить бы
-                //bool needInputs = true;
-                //if (range.MinZ == 0 && range.MinY == 0 && range.MinZ == 0 && range.MaxX == LenX - 1 && range.MaxY == LenY - 1 && range.MaxZ == LenZ - 1) needInputs = false;
-
-                // диапазоны тут у нас правильные (от меньшего к большему)
-                for (int z = range.MinZ; z <= range.MaxZ; z++)
+                var tasks = new List<Task>();
+                var neurons = new List<NeuronForDraw>();
+                foreach (var range in ranges)
                 {
-                    // но x и y могут быть как меньше так и больше
-                    for (int y = Math.Min(range.MinY, range.MaxY); y <= Math.Max(range.MinY, range.MaxY); y++)
-                    {
-                        for (int x = Math.Min(range.MinX, range.MaxX); x <= Math.Max(range.MinX, range.MaxX); x++)
-                        {
-                            neurons.Add(new NeuronForDraw() {
-                                x = x, y = y, z = z,
-                                Neuron = Neurons[z][y][x],
-                                //Input = needInputs ? findNeuronInputs(x, y, z) : new List<NRelation>()
-                            });
+                    // если выбрана вся сеть то инпуты нет смысла гнать, в инпутах и так будут куча дублей их надо как-то разрулить бы
+                    //bool needInputs = true;
+                    //if (range.MinZ == 0 && range.MinY == 0 && range.MinZ == 0 && range.MaxX == LenX - 1 && range.MaxY == LenY - 1 && range.MaxZ == LenZ - 1) needInputs = false;
 
-                            if (neurons.Count >= MaxNeuronsForSend)
+                    // диапазоны тут у нас правильные (от меньшего к большему)
+                    for (int z = range.MinZ; z <= range.MaxZ; z++)
+                    {
+                        // но x и y могут быть как меньше так и больше
+                        for (int y = Math.Min(range.MinY, range.MaxY); y <= Math.Max(range.MinY, range.MaxY); y++)
+                        {
+                            for (int x = Math.Min(range.MinX, range.MaxX); x <= Math.Max(range.MinX, range.MaxX); x++)
                             {
-                                tasks.Add(SendNeuronsAsync(ws, neurons, action));
-                                neurons = new List<NeuronForDraw>();
+                                neurons.Add(new NeuronForDraw()
+                                {
+                                    x = x,
+                                    y = y,
+                                    z = z,
+                                    Neuron = Neurons[z][y][x],
+                                });
+
+                                if (neurons.Count >= MaxNeuronsForSend)
+                                {
+                                    //tasks.Add(SendNeuronsAsync(ws, neurons, action));
+                                    await SendNeuronsAsync(ws, neurons, action);
+                                    neurons = new List<NeuronForDraw>();
+                                }
                             }
                         }
                     }
                 }
-            }
-            if (neurons.Any())
-            {
-                tasks.Add(SendNeuronsAsync(ws, neurons, action));
-            }
+                if (neurons.Any())
+                {
+                    //tasks.Add(SendNeuronsAsync(ws, neurons, action));
+                    await SendNeuronsAsync(ws, neurons, action);
+                }
 
-            return Task.WhenAll(tasks);
-            //await SendResponse(ws, JsonConvert.SerializeObject(resp, Formatting.Indented));
+                //return Task.WhenAll(tasks);
+            });
         }
-
-        /*private async Task SendRanges(WebSocket ws, List<NRange> ranges, string action)
-        {
-            var resp = new WSResponse { Action = action };
-
-            await SendResponse(ws, JsonConvert.SerializeObject(resp, Formatting.Indented));
-        }*/
 
         private Task SendConfigAsync(WebSocket ws, string action)
         {
-            var resp = new WSResponseConfig { Action = action, IsStarted = isStarted, LenX = LenX, LenY = LenY, LenZ = LenZ, MinWeight = MinWeight, MaxWeight = MaxWeight, MaxState=MAX_STATE, MinState=MIN_STATE };
+            var resp = new WSResponseConfig { Action = action, IsStarted = !IsStoped(), LenX = LenX, LenY = LenY, LenZ = LenZ, MinWeight = MinWeight, MaxWeight = MaxWeight, MaxState=MAX_STATE, MinState=MIN_STATE };
             return SendResponseAsync(ws, JsonConvert.SerializeObject(resp, Formatting.Indented));
         }
 
         private Task SendMessageAsync(WebSocket ws, string message, string action)
         {
-            return SendResponseAsync(ws, JsonConvert.SerializeObject(new WSResponse { Action = action, Message = message, IsStarted = isStarted }, Formatting.Indented));
+            return SendResponseAsync(ws, JsonConvert.SerializeObject(new WSResponse { Action = action, Message = message, IsStarted = !IsStoped() }, Formatting.Indented));
         }
 
         private Task SendErrorAsync(WebSocket ws, string message, string action)
         {
-            return SendResponseAsync(ws, JsonConvert.SerializeObject(new WSResponse { Action = action, Error = message, IsStarted = isStarted }, Formatting.Indented));
+            return SendResponseAsync(ws, JsonConvert.SerializeObject(new WSResponse { Action = action, Error = message, IsStarted = !IsStoped() }, Formatting.Indented));
         }
 
         // отправляем строку клиенту (а в строке JSON)
         private Task SendResponseAsync(WebSocket ws, string resp)
         {
-            try
-            {
-                //var len = Encoding.UTF8.GetByteCount(resp);
-                //var buffer = new ArraySegment<Byte>(new Byte[len]);
-                //var token = CancellationToken.None;
-                //var type = WebSocketMessageType.Text;
-                //var data = Encoding.UTF8.GetBytes(resp);
-                //var buffer = new ArraySegment<Byte>(Encoding.UTF8.GetBytes(resp));
-                return ws.SendAsync(new ArraySegment<Byte>(Encoding.UTF8.GetBytes(resp)), WebSocketMessageType.Text, true, CancellationToken.None);
-            }
-            catch (Exception)
-            {
-                // подавляем все ошибки, тут сокет может быть уже закрыт или еще что, нам не важно, хотя! если отвалился расчетный модуль, то кабздец ... 
-                // а в расчетный модуль отправляем ответ в отдельной функции!
-                return Task.CompletedTask;
-            }
+            //var len = Encoding.UTF8.GetByteCount(resp);
+            //var buffer = new ArraySegment<Byte>(new Byte[len]);
+            //var token = CancellationToken.None;
+            //var type = WebSocketMessageType.Text;
+            //var data = Encoding.UTF8.GetBytes(resp);
+            //var buffer = new ArraySegment<Byte>(Encoding.UTF8.GetBytes(resp));
+
+            //try
+            //{
+                return Task.Run(async () => {
+                    try
+                    {
+                        //_logger.LogInformation(1113, "NNetServer SendResponseAsync send: {resp}", resp);
+                        await ws.SendAsync(new ArraySegment<Byte>(Encoding.UTF8.GetBytes(resp)), WebSocketMessageType.Text, true, CancellationToken.None);
+                    }
+                    catch (Exception e)
+                    {
+                        _logger.LogInformation(1113, "NNetServer SendResponseAsync error {e}", e);
+                    }
+                });
+            //}
+            //catch (Exception)
+            //{
+            //    // подавляем все ошибки, тут сокет может быть уже закрыт или еще что, нам не важно, хотя! если отвалился расчетный модуль, то кабздец ... 
+            //    // а в расчетный модуль отправляем ответ в отдельной функции!
+            //    return Task.CompletedTask;
+            //}
         }
         #endregion
 

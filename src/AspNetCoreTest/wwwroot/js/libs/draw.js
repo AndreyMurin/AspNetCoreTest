@@ -26,7 +26,7 @@
         netConfig,
         controlsCont,
         cameraInfo,
-        net,
+        net = undefined,
 
         scene,
         camera,
@@ -285,12 +285,39 @@
             n.position.z = z * settings.factorZ + settings.summandZ;
             return n;
         },
-        drawNet = function () {
-            console.log( 'drawNet', netConfig );
+        clearNet = function () {
+            console.log('clearNet');
+            if (typeof net === 'undefined') return true;
 
-            camera.position.set( 5.7033302189268404, -15.506568322186508, 4.9197803014393395 );
+            for (var z = 0; z < netConfig.LenZ; z++) {
+                for (var y = 0; y < netConfig.LenY; y++) {
+                    for (var x = 0; x < netConfig.LenX; x++) {
+                        var n = net[z][y][x];
+                        if (typeof n.Akson !== 'undefined') { // есть аксон удалим
+                            scene.remove(n.Akson);
+                        }
+                        if (typeof n.Relations !== 'undefined') { // есть связи их надо удалить из сцены
+                            scene.remove(n.Relations);
+                        }
+
+                        scene.remove(n);
+                    }
+                }
+            }
+
+            //return false; // тестирвоание очистки сцены
+            return true;
+        },
+        drawNet = function () {
+            console.log('drawNet', netConfig);
+            //scene.cl
+
+            if (!clearNet()) return;
+
+            //camera.position.set( 5.7033302189268404, -15.506568322186508, 4.9197803014393395 );
             //camera.updateProjectionMatrix();
-            controls.update();
+
+            //controls.update();
             net = new Array( netConfig.LenZ );
             for ( var z = 0; z < netConfig.LenZ; z++ ) {
                 net[z] = new Array( netConfig.LenY );
@@ -353,6 +380,7 @@
         // первый клик выбирает начальный нейрон
         // второй клик конечный
         onClick = function () {
+            //console.log(camera.toJSON());
             if ( !INTERSECTED ) { // ничего не делаем! скидываем при двойном клике на пустом месте (скидывает после вращения камеры)
                 return;
             };
@@ -389,6 +417,9 @@
             //mouse.x = (event.clientX / element.innerWidth()) * 2 - 1;
             //mouse.y = -(event.clientY / element.innerHeight()) * 2 + 1;
             //console.log(mouse.x, mouse.y);
+
+            //console.log('кам',camera.position);
+            //console.log('кон',controls.target);
         },
         create = function () {
             controlsCont = $( settings.controls );
@@ -396,7 +427,7 @@
 
             var width = element.innerWidth();
             var height = element.innerHeight();
-            var radius = 1;
+            //var radius = 10;
 
             scene = new THREE.Scene();
             scene.add( new THREE.AmbientLight( 0xffffff, 0.3 ) );
@@ -406,8 +437,10 @@
             scene.add( light );
 
 
-            camera = new THREE.PerspectiveCamera( 75, width / height, 0.1, 1000 );
-            camera.position.set( 0.0, radius, radius * 3.5 );
+            camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+
+            //camera.position.set( 0.0, radius, radius * 3.5 );
+            camera.position.set(26, -40, 7);
 
             renderer = new THREE.WebGLRenderer( { antialias: true, alpha: false } );
             renderer.setClearColor( 0xffffff );//(0x777777);
@@ -424,13 +457,16 @@
             element.on( 'dblclick', onDoubleClick );
 
             controls = new THREE.OrbitControls( camera, renderer.domElement );
-            controls.target.set( 0, 0, 0 );
+            //controls.target.set( 0, 0, 0 );
+            controls.target.set(26, -5, -10);
             controls.update();
 
             element.append( renderer.domElement );
 
             scene.add( buildAxes( 1000 ) );
             animate();
+
+            //camera.position.set(5.7033302189268404, -15.506568322186508, 4.9197803014393395);
 
             $( window ).off( 'resize' );
             $( window ).on( 'resize', resize );

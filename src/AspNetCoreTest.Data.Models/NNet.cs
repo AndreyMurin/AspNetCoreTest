@@ -125,7 +125,20 @@ namespace AspNetCoreTest.Data.Models
         //private long _size { get { return LenX * LenY * LenZ; }  }
 
         // даже не знаю как удобнее через статик или каждому нейрону сделать ссылку на сеть
-        public static int isStarted = 0;
+        //public static int isStarted = 0;
+        private static CancellationTokenSource cTokenSource = null;
+        //private static CancellationToken cToken; // на замену isStarted
+        public static bool IsStoped()
+        {
+            if (cTokenSource == null || cTokenSource.Token.IsCancellationRequested)
+            {
+                //Console.WriteLine("Task {0} cancelled", GetType().Name);
+                //Token.ThrowIfCancellationRequested();
+                return true;
+            }
+            return false;
+        }
+
         // число одновременно запущеннных задач (активных нейронов, чтоб оперативно тормозить)
         public static int Threads = 0;
 
@@ -185,6 +198,8 @@ namespace AspNetCoreTest.Data.Models
         }
 
         // цикл отправки данных другим частям и подписчикам
+        // TODO чтение очереди переделать на что то подобное https://github.com/cyounes/ObservableConcurrentQueue
+        // идеальный вариант while (kol < MAX_SEND_ACTIVITIES && await SendActiveQueue.GetFirstWithWaitAsync(cancelationToken, out a))
         private Task _sendActivitiesTask()
         {
             //_logger.LogInformation("_sendActivities create task");
@@ -193,7 +208,8 @@ namespace AspNetCoreTest.Data.Models
                 List<SendActivity> list = new List<SendActivity>();
                 SendActivity a;
                 var kol = 0;
-                while (isStarted == 1)
+                //while (isStarted == 1)
+                while (!IsStoped())
                 {
                     //var kol = 0;
                     //list = new List<SendActivity>();
@@ -208,6 +224,11 @@ namespace AspNetCoreTest.Data.Models
                         list = new List<SendActivity>();
                         kol = 0;
                     }
+                    else
+                    {
+                        // обязательно делать слип хоть на милисекунду, иначе 1 ядро будет занято на 100% попытками чтения с очереди
+                        Thread.Sleep(1);
+                    }
                 }
                 // досылаем остатки и выходим. если много в остатке будет то будет отправлен большой пакет. это не очень хорошо так как неконтролируемо
                 list = new List<SendActivity>();
@@ -219,12 +240,14 @@ namespace AspNetCoreTest.Data.Models
             });
         }
 
+        // TODO чтение очереди переделать на что то подобное https://github.com/cyounes/ObservableConcurrentQueue
         private Task _workTask() {
             //_logger.LogInformation("_workTask create task");
             return Task.Run(() =>
             {
                 QueueNeuron n;
-                while (isStarted == 1)
+                //while (isStarted == 1)
+                while (!IsStoped())
                 {
                     try
                     {
@@ -250,11 +273,6 @@ namespace AspNetCoreTest.Data.Models
                         Thread.Sleep(1000);
                         //await Task.Delay(1000);
                     }
-                    //finally
-                    //{
-                    //    //_logger.LogError("----> finally!!!!!!!!!!!!!!!!!!!!");
-                    //    Thread.Sleep(1000);
-                    //}
                 }
                 // пока тока так можно гарантирвоать окончание работы всех нейронов? но не более 2 секунд
                 var exitDelim = 0;
@@ -267,41 +285,39 @@ namespace AspNetCoreTest.Data.Models
         }
 
         // рабочий цикл сети. все потоки нейронов стартуем строго отсюда
+        private Object _startLock = new Object();
         private Task _work()
         {
-            if (0 == Interlocked.CompareExchange(ref isStarted, 1, 0))
+            lock (_startLock)
             {
-                
-                return Task.WhenAll(new Task[] { _workTask(), _sendActivitiesTask() });
-                // сохраним задачу чтобы ждать ее завершения при остановке
+                // добавить блокировку чтобы тело этой функции железно выполнялось тока 1 раз в одно время
+                if (!IsStoped()) return Task.CompletedTask;
 
-                //return _workingTask;
+                Threads = 0;
+
+                // а вот очередь отправки мы инициализируем тут
+                SendActiveQueue = new ConcurrentQueue<SendActivity>();
+
+                cTokenSource = new CancellationTokenSource();
+                //cToken = cTokenSource.Token;
+                return Task.WhenAll(new Task[] { _workTask(), _sendActivitiesTask() });
             }
-            return Task.CompletedTask;
         }
 
         private Task _workingTask = Task.CompletedTask;
-        //private Task _workingSATask = Task.CompletedTask;
         // запускаем сеть в работу (потоки обработки нейронов не затрагиваются)
         public void Start()
         {
-            Threads = 0;
-
-            // а вот очередь отправки мы инициализируем тут
-            SendActiveQueue = new ConcurrentQueue<SendActivity>();
-
             _workingTask = _work();
-
-            //_workingSATask = _sendActivitiesTask();
         }
 
         // ставим сеть на паузу (потоки обработки нейронов не затрагиваются)
         public void Stop()
         {
-            // присвоение без блокировки
-            Interlocked.Exchange(ref isStarted, 0);
+            if (cTokenSource == null) return;
 
-            //_workingTask.Wait();
+            cTokenSource.Cancel();
+
             Task.WaitAll( new Task[] { _workingTask/*, _workingSATask*/ } );
         }
 

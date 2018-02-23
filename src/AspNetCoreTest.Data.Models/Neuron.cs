@@ -277,7 +277,8 @@ namespace AspNetCoreTest.Data.Models
                 for (var i = 0; i < (period / minsleep); i++)
                 {
                     Thread.Sleep(minsleep);
-                    if (NNet.isStarted == 0) return;// сеть остановлена выходим
+                    //if (NNet.isStarted == 0) return;// сеть остановлена выходим
+                    if (NNet.IsStoped()) return;// сеть остановлена выходим
                 }
                 var ostatok = period - ((period / minsleep) * minsleep);
                 if (ostatok > 0) Thread.Sleep(ostatok);
@@ -298,7 +299,8 @@ namespace AspNetCoreTest.Data.Models
                     Interlocked.Increment(ref NNet.Threads);
                     try
                     {
-                        while (_checkState() && NNet.isStarted == 1)
+                        //while (_checkState() && NNet.isStarted == 1)
+                        while (_checkState() && !NNet.IsStoped())
                         {
                             Net.SendActiveQueue.Enqueue(new SendActivity { Coords = new NCoords(x, y, z), State = _state });
                             LastActive = DateTime.Now;
@@ -306,7 +308,7 @@ namespace AspNetCoreTest.Data.Models
                             _evalNewStates();
 
                             // не важно когда мы выйдем до засыпания или после эта инфа потеряется при остановке
-                            if (NNet.isStarted == 0) break;// сеть остановлена выходим
+                            if (NNet.IsStoped()) break;// сеть остановлена выходим
 
                             if (_checkState())
                             {
@@ -314,7 +316,7 @@ namespace AspNetCoreTest.Data.Models
                                 _sleep(SpikePeriod);
                             }
 
-                            if (NNet.isStarted == 0) break;// сеть остановлена выходим
+                            if (NNet.IsStoped()) break;// сеть остановлена выходим
                         }
 
                         // здесь нельзя снимать активность! а что если сеть остановили и мы вышли из цикла?
