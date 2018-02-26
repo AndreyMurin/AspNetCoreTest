@@ -11,7 +11,9 @@ namespace ConsoleTest
             var t = new OConcurrentQueueTests();
 
             //Task.WaitAll(t.TestZero());
-            Task.WaitAll(t.TestPipeReadFirst());
+            //Task.WaitAll(t.TestPipeReadFirst());
+
+            Task.WaitAll(t.TestPipeReadSpeed());
         }
 
     }
