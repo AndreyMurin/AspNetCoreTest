@@ -23,24 +23,26 @@ namespace ConsoleTest
             return Task.Run(async () =>
             {
                 Console.WriteLine("read task run");
-                //try
-                //{
-                while (await q.WaitAsync(cTokenSource.Token))
+                
+                // хз но иногда WaitAsync вылетает по исключению (ловил вылет на отмене)
+                try
                 {
-                    //Console.WriteLine("queue not empty");
-                    int n;
-                    while (q.TryDequeue(out n))
+                    while (await q.WaitAsync(cTokenSource.Token))
                     {
-                        //Console.WriteLine("readed from pipe: " + n);
-                        nn = n; // иммитация нагрузки
+                        //Console.WriteLine("queue not empty");
+                        int n;
+                        while (q.TryDequeue(out n))
+                        {
+                            Console.WriteLine("readed from pipe: " + n);
+                            nn = n; // иммитация нагрузки
+                        }
                     }
+                    Console.WriteLine("false? last:" + nn);
                 }
-                Console.WriteLine("false? last:" + nn);
-                //}
-                //catch
-                //{
-                //    Console.WriteLine("posible cancel?");
-                //}
+                catch
+                {
+                    Console.WriteLine("posible cancel?");
+                }
             });
         }
 
@@ -81,6 +83,32 @@ namespace ConsoleTest
             return Task.WhenAll(readTask);
         }
 
+        public async Task TestPipeWriteFirst()
+        {
+            var q = new OConcurrentQueue<int>((string mess) => { Console.WriteLine("!:" + mess); });
+            var cTokenSource = new CancellationTokenSource();
+
+            var workTask1 = Task.Run(async () =>
+            {
+                for (var i = 0; i < 10; i++, i++)
+                {
+                    Console.WriteLine("put in pipe: " + i);
+                    q.Enqueue(i);
+                    Console.WriteLine(".");
+                    await Task.Delay(0);
+                }
+            });
+
+            await Task.Delay(10);
+
+            var readTask = runReadTask(q, cTokenSource);
+
+            var killTask = runKillTask(50, cTokenSource);
+
+            //Task.WaitAll(readTask);
+            await Task.WhenAll(readTask);
+        }
+
         // сколько интов мы прочитаем из очереди за 1 милисекунду (20 чтений за 10 милисекунд с выводом на консоль! без консоли астрономические цифры 19472, 17474 за 1 мс!)
         // 1 ms (после цикла 509918, 388412)
         // без консоли за 10 мс 21395, 17157, 23808, 24696 (после цикла 440525, 1009119, 965629)
@@ -102,7 +130,7 @@ namespace ConsoleTest
 
             var workTask1 = Task.Run(async () =>
             {
-                for (var i = 0; i < 3000000; i++)
+                for (var i = 0; i < 300000000; i++)
                 {
                     //Console.WriteLine("put in pipe: " + i);
                     q.Enqueue(i);
@@ -111,7 +139,7 @@ namespace ConsoleTest
                 }
             });
 
-            var killTask = runKillTask(100, cTokenSource);
+            var killTask = runKillTask(10, cTokenSource);
 
             //Task.WaitAll(readTask);
             await readTask;

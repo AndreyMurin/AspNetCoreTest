@@ -13,7 +13,9 @@ namespace ConsoleTest
             //Task.WaitAll(t.TestZero());
             //Task.WaitAll(t.TestPipeReadFirst());
 
-            Task.WaitAll(t.TestPipeReadSpeed());
+            //Task.WaitAll(t.TestPipeReadSpeed());
+
+            Task.WaitAll(t.TestPipeWriteFirst());
         }
 
     }

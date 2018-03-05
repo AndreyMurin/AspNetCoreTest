@@ -10,8 +10,12 @@ namespace AspNetCoreTest.Data.Models
     //public delegate void ConcurrentQueueChangedEventHandler<T>(object sender);
     public delegate void tmpHandler(object sender);
 
+    public delegate void dLog(string message);
+
     public class OConcurrentQueue<T> : ConcurrentQueue<T>
     {
+        public event dLog Log;
+
         private TaskCompletionSource<bool> tcs = null;
         //private int max = 1;
 
@@ -24,7 +28,9 @@ namespace AspNetCoreTest.Data.Models
         private Task<bool> completedTaskTrue;
         private Task<bool> completedTaskFalse;
 
-        public OConcurrentQueue() {
+        public OConcurrentQueue(dLog log = null)
+        {
+            Log += log;
             var tmp = new TaskCompletionSource<bool>();
             tmp.SetResult(true);
             completedTaskTrue = tmp.Task;
@@ -69,7 +75,7 @@ namespace AspNetCoreTest.Data.Models
         {
             if (ct.IsCancellationRequested)
             {
-                Console.WriteLine("IsCancellationRequested...");
+                Log?.Invoke("IsCancellationRequested...");
                 return completedTaskFalse;
             }
             // если задача уже создана вернем ее (так как чтение задач будет идти в одном потоке то повторный вызов очень маловероятен)
@@ -84,27 +90,44 @@ namespace AspNetCoreTest.Data.Models
             }
 
             // https://docs.microsoft.com/ru-ru/dotnet/standard/asynchronous-programming-patterns/implementing-the-task-based-asynchronous-pattern
-            tcs = new TaskCompletionSource<bool>();
-            var res = tcs.Task; // ибо при первом запуске пока делаем регистрацию на токене задача уже выполнена и tcs == null
+            // хз, но один раз тут словил null reference!
+            Task<bool> res;
+            //try
+            //{
+                tcs = new TaskCompletionSource<bool>();
+                res = tcs.Task; // ибо при первом запуске пока делаем регистрацию на токене задача уже выполнена и tcs == null
+            //}
+            //catch (Exception e)
+            //{
+            //    Console.WriteLine("Exception on create task:", e.ToString());
+            //    throw;
+            //}
 
             if (!tokens.ContainsKey(ct))
             {
                 tokens[ct] = true;
                 // не удачный вариант. так мы нарегистрируем кучу абсолютно одинаковых делегатов на один и тот же токен. токен будет жить долго а задачи на ожидание мы будем создавать на каждый чих
-                // исправлено! теперь мы ведем коллекцию уже отбработанных токенов и второй раз не подписываем
+                // исправлено! теперь мы ведем коллекцию уже обработанных токенов и второй раз не подписываем
                 ct.Register(() =>
                 {
-                    Console.WriteLine("Cancel...");
-                    //if (tcs == null) return;
-                    var t = tcs; tcs = null;
+                    // в теории здесь нет смысла ставить try catch
+                    //try
+                    //{
+                        Log?.Invoke("Cancel...");
+                        //if (tcs == null) return;
+                        var t = tcs; tcs = null;
 
-                    //t?.SetCanceled();
-                    // вместо SetCanceled будем делать SetResult(false) при false мы прервем цикл и не будет прокинуто исключение (в теории если исключение это ресурсоемкая операция то мы выиграем)
-                    t?.SetResult(false);
+                        //t?.SetCanceled();
+                        // вместо SetCanceled будем делать SetResult(false) при false мы прервем цикл и не будет прокинуто исключение (в теории если исключение это ресурсоемкая операция то мы выиграем)
+                        t?.SetResult(false);
+                    //}
+                    //catch (Exception e)
+                    //{
+                    //    Console.WriteLine("Exception on cancel...", e.ToString());
+                    //    throw;
+                    //}
                 });
             }
-            //try { tcs.SetResult(new List<T>()); tcs = null; }
-            //catch (Exception exc) { tcs.SetException(exc); tcs = null; }
 
             return res;
         }
